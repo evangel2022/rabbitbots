@@ -66,6 +66,12 @@ const ArtifactsPage = lazyComponent(() =>
   import("./pages/Artifacts").then((module) => module.ArtifactsPage),
 );
 const BoardPage = lazyComponent(() => import("./pages/Board").then((module) => module.BoardPage));
+const MeetingsPage = lazyComponent(() =>
+  import("./pages/MeetingsPage").then((module) => module.MeetingsPage),
+);
+const WorkforcePage = lazyComponent(() =>
+  import("./pages/WorkforcePage").then((module) => module.WorkforcePage),
+);
 const AdminPluginsPage = lazyComponent(() =>
   import("./pages/AdminPluginsPage").then((module) => module.AdminPluginsPage),
 );
@@ -293,6 +299,8 @@ function SessionApp() {
                   <Route path="/app/artifacts" element={<ArtifactsPage />} />
                   <Route path="/app/artifacts/:artifactId" element={<ArtifactsPage />} />
                   {ticketBoardEnabled ? <Route path="/app/board" element={<BoardPage />} /> : null}
+                  <Route path="/app/meetings" element={<MeetingsPage />} />
+                  <Route path="/app/workforce" element={<WorkforcePage />} />
                   <Route path="/app/x/:linkId" element={<NavLinkPage />} />
                 </Route>
               </Route>

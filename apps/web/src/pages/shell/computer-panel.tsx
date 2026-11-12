@@ -8,7 +8,7 @@ import { ComputersUnavailableHint } from "../../components/ComputersUnavailableH
 import { screenFrames, screenIframeSandbox } from "../../lib/computer-screen";
 import { computerLabel, computerPlaceholder, DesktopKindEmptyState } from "./computer-view";
 
-type ComputerPanelProps = {
+export type ComputerPanelProps = {
   bot: Bot;
   computer: ComputerStatus | null;
   computerOpen: boolean;
@@ -27,12 +27,18 @@ type ComputerPanelProps = {
   onRecoveryDismissed: () => void;
   onOpenComputerSettings?: () => void;
   onOpen: () => void;
+  /** Wakes or starts the computer in place, without opening the full-screen view. */
+  onStart?: () => void;
+  /** `workspace` fills its column instead of keeping the 16:10 preview box. */
+  variant?: "preview" | "workspace";
   cleaningUpDisk?: boolean;
   onCleanUpDisk?: () => void;
   onDismissDiskWarning?: () => void;
 };
 
 export function ComputerPanel({
+  variant = "preview",
+  onStart,
   cleaningUpDisk,
   onCleanUpDisk,
   onDismissDiskWarning,
@@ -41,9 +47,9 @@ export function ComputerPanel({
   const percent = props.computer?.diskFullPercent;
   const warn = percent !== undefined && onCleanUpDisk && onDismissDiskWarning;
   // The preview keeps its place either way, so the warning never remounts the live screen.
-  return (
+  const body = (
     <>
-      <ComputerPreview {...props} />
+      <ComputerPreview {...props} variant={variant} onStart={onStart} />
       {warn && (
         <div
           data-testid="computer-disk-warning"
@@ -68,6 +74,11 @@ export function ComputerPanel({
       )}
     </>
   );
+  return variant === "workspace" ? (
+    <div className="flex h-full min-h-0 flex-col">{body}</div>
+  ) : (
+    body
+  );
 }
 
 function ComputerPreview({
@@ -88,7 +99,10 @@ function ComputerPreview({
   onRecoveryDismissed,
   onOpenComputerSettings,
   onOpen,
+  onStart,
+  variant,
 }: Omit<ComputerPanelProps, "cleaningUpDisk" | "onCleanUpDisk" | "onDismissDiskWarning">) {
+  const workspace = variant === "workspace";
   // A clickable preview invites a boot that costs money, so an idle computer only wakes from its button.
   const idle =
     !computerOpen &&
@@ -103,7 +117,11 @@ function ComputerPreview({
       <div
         data-testid="computer-preview"
         data-state="idle"
-        className="flex flex-col items-center gap-3 rounded-[14px] bg-muted/50 px-6 py-7"
+        className={
+          workspace
+            ? "flex flex-1 flex-col items-center justify-center gap-3 bg-muted/30 px-6 py-7"
+            : "flex flex-col items-center gap-3 rounded-[14px] bg-muted/50 px-6 py-7"
+        }
       >
         <div className="relative">
           <BotAvatar
@@ -121,10 +139,21 @@ function ComputerPreview({
           </span>
         </div>
         <span className="text-body text-muted-foreground">
-          <Trans>Asleep</Trans>
+          {computer?.state === "suspended" ? (
+            <Trans>Asleep</Trans>
+          ) : computer ? (
+            <Trans>Stopped</Trans>
+          ) : (
+            <Trans>Not started</Trans>
+          )}
         </span>
-        <Button variant="secondary" size="sm" data-testid="computer-preview-open" onClick={onOpen}>
-          <Trans>Wake</Trans>
+        <Button
+          variant="secondary"
+          size="sm"
+          data-testid="computer-preview-open"
+          onClick={onStart ?? onOpen}
+        >
+          {computer?.state === "suspended" ? <Trans>Wake</Trans> : <Trans>Start</Trans>}
         </Button>
       </div>
     );
@@ -135,11 +164,15 @@ function ComputerPreview({
     ? "transition-opacity group-hover:opacity-0 group-has-[:focus-visible]:opacity-0"
     : "";
   return (
-    <div>
+    <div className={workspace ? "flex min-h-0 flex-1 flex-col" : undefined}>
       <div
         data-testid="computer-preview"
-        className={`group relative rounded-[14px] bg-background ${
-          showingRecoveryHint ? "" : "aspect-[16/10] overflow-hidden"
+        className={`group relative ${
+          workspace
+            ? "min-h-0 flex-1 overflow-hidden rounded-[14px] border border-sidebar-border bg-muted/10"
+            : `bg-background ${
+                showingRecoveryHint ? "" : "aspect-[16/10] overflow-hidden rounded-[14px]"
+              }`
         }`}
       >
         {computerOpen ? (
@@ -171,22 +204,24 @@ function ComputerPreview({
           <div
             className={`grid h-full place-items-center px-6 text-center text-body text-muted-foreground/80 ${hideOnHover}`}
           >
-            {computerScreenError ??
-              (showComputerRecoveryHint ? (
-                <ComputersUnavailableHint
-                  sandboxProvider={sandboxProvider}
-                  onRecovered={onRecovered}
-                  onRecoveryDismissed={onRecoveryDismissed}
-                  onOpenComputerSettings={onOpenComputerSettings}
-                />
-              ) : (
-                (computerBooting ??
-                computerPlaceholder(
-                  computer?.state,
-                  booting,
-                  computerLabel(computer?.mode, bot.name),
-                ))
-              ))}
+            <div>
+              {computerScreenError ??
+                (showComputerRecoveryHint ? (
+                  <ComputersUnavailableHint
+                    sandboxProvider={sandboxProvider}
+                    onRecovered={onRecovered}
+                    onRecoveryDismissed={onRecoveryDismissed}
+                    onOpenComputerSettings={onOpenComputerSettings}
+                  />
+                ) : (
+                  (computerBooting ??
+                  computerPlaceholder(
+                    computer?.state,
+                    booting,
+                    computerLabel(computer?.mode, bot.name),
+                  ))
+                ))}
+            </div>
           </div>
         )}
         {canOpen ? (

@@ -9,6 +9,9 @@ import type {
 
 const payloadSchemas = {
   "run.continue": z.object({ runId: z.string().min(1) }),
+  "meeting.reconcile": z.object({ meetingId: z.string().min(1) }),
+  "meeting.action.reconcile": z.object({ actionItemId: z.string().min(1) }),
+  "workforce.task.reconcile": z.object({ taskId: z.string().min(1) }),
   "routine.wakeup": z.object({
     routineId: z.string().min(1),
     scheduledFor: z.string().datetime({ offset: true }),
@@ -67,6 +70,60 @@ export async function dispatchBackgroundJob(
 
 export function runJobKey(runId: string): string {
   return `run:${runId}`;
+}
+
+export function meetingReconcileJobKey(meetingId: string): string {
+  return `meeting.reconcile:${meetingId}`;
+}
+
+/**
+ * One durable reconciliation job per meeting. A duplicate enqueue with keepExisting
+ * leaves a live job alone; a job locked by a dead worker can be replaced after
+ * replaceLockedBefore. The handler is idempotent, so a redelivery is safe.
+ */
+export function meetingReconcileJob(
+  meetingId: string,
+  options: {
+    availableAt?: Date;
+    keepExisting?: boolean;
+    replaceLockedBefore?: Date;
+  } = {},
+): BackgroundJob {
+  return {
+    name: "meeting.reconcile",
+    payload: { meetingId },
+    replaceKey: meetingReconcileJobKey(meetingId),
+    maxAttempts: 8,
+    ...(options.availableAt ? { availableAt: options.availableAt } : {}),
+    ...(options.keepExisting ? { keepExisting: true } : {}),
+    ...(options.replaceLockedBefore ? { replaceLockedBefore: options.replaceLockedBefore } : {}),
+  };
+}
+
+export function meetingActionReconcileJobKey(actionItemId: string): string {
+  return `meeting.action.reconcile:${actionItemId}`;
+}
+
+export function meetingActionReconcileJob(actionItemId: string): BackgroundJob {
+  return {
+    name: "meeting.action.reconcile",
+    payload: { actionItemId },
+    replaceKey: meetingActionReconcileJobKey(actionItemId),
+    maxAttempts: 8,
+  };
+}
+
+export function workforceTaskReconcileJobKey(taskId: string): string {
+  return `workforce.task.reconcile:${taskId}`;
+}
+
+export function workforceTaskReconcileJob(taskId: string): BackgroundJob {
+  return {
+    name: "workforce.task.reconcile",
+    payload: { taskId },
+    replaceKey: workforceTaskReconcileJobKey(taskId),
+    maxAttempts: 8,
+  };
 }
 
 export function routineJobKey(routineId: string): string {

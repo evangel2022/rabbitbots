@@ -10,6 +10,7 @@ import { Button, Input, InputOTP, InputOTPGroup, InputOTPSlot, Label } from "@ra
 import { useEffect, useRef, useState } from "react";
 import { Link, useSearchParams } from "react-router-dom";
 import { PasskeySignIn } from "../components/PasskeySignIn";
+import { RabbitBotsMark } from "../components/RabbitBotsBrand";
 import { authClient } from "../lib/auth";
 import type { AuthCapabilities } from "../lib/auth-capabilities";
 import { fetchAuthCapabilities } from "../lib/auth-capabilities";
@@ -63,9 +64,9 @@ export function AuthPage({ mode }: { mode: AuthMode }) {
     sent || codeStep ? (
       <Trans>Check your email</Trans>
     ) : mode === "in" ? (
-      <Trans>Sign in to Rakazo</Trans>
+      <Trans>Sign in to RabbitBots</Trans>
     ) : mode === "up" ? (
-      <Trans>Create your Rakazo</Trans>
+      <Trans>Create your RabbitBots</Trans>
     ) : (
       <Trans>Reset your password</Trans>
     );
@@ -565,9 +566,8 @@ export function AuthFrame({
       </div>
       <div className="flex flex-1 items-center justify-center px-6 pb-16">
         <form onSubmit={onSubmit} className="flex w-full max-w-[460px] flex-col items-center">
-          <div className="flex h-[74px] w-[74px] items-center justify-center gap-[11px] rounded-full bg-muted">
-            <span className="h-5 w-[9px] rounded-full bg-primary" />
-            <span className="h-5 w-[9px] rounded-full bg-primary" />
+          <div className="grid size-[74px] place-items-center rounded-[22px] bg-foreground text-background shadow-sm">
+            <RabbitBotsMark className="size-11" />
           </div>
           <h1
             aria-live="polite"

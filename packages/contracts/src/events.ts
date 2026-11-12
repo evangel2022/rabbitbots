@@ -388,6 +388,8 @@ export const MessageBlock = z.discriminatedUnion("kind", [
     toBotName: z.string(),
     text: z.string(),
     intent: BotMessageIntent.optional(),
+    /** Set when this delivery is one child of a tracked orchestration; its outcome joins later. */
+    orchestrationId: Id.optional(),
   }),
   z.object({
     /** Delivered into the receiving bot's own chat as the prompt that woke it. */
@@ -396,6 +398,8 @@ export const MessageBlock = z.discriminatedUnion("kind", [
     fromBotName: z.string(),
     text: z.string(),
     intent: BotMessageIntent.optional(),
+    /** Set when this delivery is one child of a tracked orchestration; its outcome joins later. */
+    orchestrationId: Id.optional(),
     /** Sender-thread echo this delivery answers, when applicable. */
     returnToMessageId: Id.optional(),
     /** Links in a bot-started chain; absent when a person started it. */

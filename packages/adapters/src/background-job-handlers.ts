@@ -12,10 +12,13 @@ import type {
   SecretStore,
 } from "@rakazo/adapter-kit";
 import {
+  meetingActionReconcileJob,
+  meetingReconcileJob,
   messagingDeliverJob,
   SandboxRateLimitError,
   SandboxUnavailableError,
   SandboxUnresponsiveError,
+  workforceTaskReconcileJob,
 } from "@rakazo/adapter-kit";
 import type { PrismaClient, ThreadEvents } from "@rakazo/db";
 import { runAsSystem, runAsTenant } from "@rakazo/db";
@@ -30,6 +33,7 @@ import type { createRunExecutor } from "./executor.js";
 import type { ExpoPushProvider } from "./expo-push.js";
 import { compactHistory } from "./history-compaction.js";
 import { pollMediaVideo } from "./media-video-poll.js";
+import { reconcileMeeting, reconcileMeetingAction } from "./meetings.js";
 import type { MemoryProviderResolver } from "./memory-provider-factory.js";
 import {
   deliverMessagingOutbound,
@@ -38,6 +42,7 @@ import {
 } from "./messaging-delivery.js";
 import { pollPurchase } from "./purchase-poll.js";
 import { expireTaughtSkillTeaching } from "./teaching-session.js";
+import { reconcileWorkforceTask } from "./workforce-tasks.js";
 
 type Tenant = { spaceId: string; userId: string };
 
@@ -113,6 +118,27 @@ export function createBackgroundJobHandlers(deps: {
     deps.prisma.run.findUnique({ where: { id: runId }, select: OWNER });
   const routine = ({ routineId }: { routineId: string }) =>
     deps.prisma.routine.findUnique({ where: { id: routineId }, select: OWNER });
+  const meetingAction = async ({ actionItemId }: { actionItemId: string }) => {
+    const row = await deps.prisma.meetingActionItem.findUnique({
+      where: { id: actionItemId },
+      select: { meeting: { select: { spaceId: true, createdBy: true } } },
+    });
+    return row?.meeting ? { spaceId: row.meeting.spaceId, userId: row.meeting.createdBy } : null;
+  };
+  const workforceTask = async ({ taskId }: { taskId: string }) => {
+    const row = await deps.prisma.workforceTask.findUnique({
+      where: { id: taskId },
+      select: { spaceId: true, createdByUserId: true },
+    });
+    return row ? { spaceId: row.spaceId, userId: row.createdByUserId } : null;
+  };
+  const meeting = async ({ meetingId }: { meetingId: string }) => {
+    const row = await deps.prisma.meeting.findUnique({
+      where: { id: meetingId },
+      select: { spaceId: true, createdBy: true },
+    });
+    return row ? { spaceId: row.spaceId, userId: row.createdBy } : null;
+  };
   const computer = ({ computerId }: { computerId: string }) =>
     deps.prisma.computer.findUnique({ where: { id: computerId }, select: OWNER });
   const thread = ({ threadId }: { threadId: string }) =>
@@ -140,9 +166,48 @@ export function createBackgroundJobHandlers(deps: {
 
   return {
     "run.continue": asOwner(run, async (payload, execution) => {
-      if (execution)
-        await deps.executor.continueRun(payload.runId, deps.workerId, execution.onRunStarted);
-      else await deps.executor.continueRun(payload.runId, deps.workerId);
+      try {
+        if (execution)
+          await deps.executor.continueRun(payload.runId, deps.workerId, execution.onRunStarted);
+        else await deps.executor.continueRun(payload.runId, deps.workerId);
+      } finally {
+        // A meeting turn's run is durable before this job runs. Advance the meeting
+        // from the same worker after the stage attempt, including a failed stage,
+        // instead of waiting for a browser poll.
+        const meetingTurn = await deps.prisma.meetingTurn
+          ?.findFirst({ where: { runId: payload.runId }, select: { meetingId: true } })
+          .catch((error) => {
+            getLogger().error("meeting turn lookup after run", error);
+            return null;
+          });
+        if (meetingTurn) {
+          await deps.jobs.enqueue(meetingReconcileJob(meetingTurn.meetingId)).catch((error) => {
+            getLogger().error("meeting reconcile enqueue after run", error);
+          });
+        }
+        const actionItem = await deps.prisma.meetingActionItem
+          ?.findFirst({ where: { botRunId: payload.runId }, select: { id: true } })
+          .catch((error) => {
+            getLogger().error("meeting action lookup after run", error);
+            return null;
+          });
+        if (actionItem) {
+          await deps.jobs.enqueue(meetingActionReconcileJob(actionItem.id)).catch((error) => {
+            getLogger().error("meeting action reconcile enqueue after run", error);
+          });
+        }
+        const workforceTask = await deps.prisma.workforceTask
+          ?.findFirst({ where: { botRunId: payload.runId }, select: { id: true } })
+          .catch((error) => {
+            getLogger().error("workforce task lookup after run", error);
+            return null;
+          });
+        if (workforceTask) {
+          await deps.jobs.enqueue(workforceTaskReconcileJob(workforceTask.id)).catch((error) => {
+            getLogger().error("workforce task reconcile enqueue after run", error);
+          });
+        }
+      }
       // Automatic messaging mirror: once the run's bot messages are durable,
       // copy them into the outbox. Never let mirror failures fail the run.
       if (messagingDeps) {
@@ -152,6 +217,15 @@ export function createBackgroundJobHandlers(deps: {
           await drainMessaging();
         });
       }
+    }),
+    "meeting.reconcile": asOwner(meeting, async ({ meetingId }) => {
+      await reconcileMeeting(deps, meetingId);
+    }),
+    "meeting.action.reconcile": asOwner(meetingAction, async ({ actionItemId }) => {
+      await reconcileMeetingAction(deps, actionItemId);
+    }),
+    "workforce.task.reconcile": asOwner(workforceTask, async ({ taskId }) => {
+      await reconcileWorkforceTask(deps, taskId);
     }),
     "messaging.credential-cleanup": async ({ installationId, ref }) => {
       await runAsSystem("clean up a retired messaging credential", async () => {

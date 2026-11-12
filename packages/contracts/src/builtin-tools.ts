@@ -101,11 +101,14 @@ export const BUILTIN_TOOL_NAMES = [
   "archive_bot",
   "message_bot",
   "handoff_to_bot",
+  "start_parallel_delegation",
   "update_preferences",
   "feedback",
   "connect_agent",
   "respond_agent_connection",
   "message_agent",
+  "delegate_task",
+  "delegated_task_status",
 ] as const;
 
 export const BuiltinToolNameSchema = z.enum(BUILTIN_TOOL_NAMES);

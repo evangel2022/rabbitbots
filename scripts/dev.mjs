@@ -45,7 +45,7 @@ const PORT_STEP = 10;
 const MANAGED = {
   container: "rakazo-dev-postgres",
   image: "postgres:18",
-  port: 54318,
+  port: 55450,
   owner: "rakazo",
   runtime: "rakazo_dev",
   database: "rakazo",

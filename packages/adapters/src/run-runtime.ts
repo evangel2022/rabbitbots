@@ -28,8 +28,10 @@ import { createJobReconciler } from "./job-reconciler.js";
 import { McpConnector, mcpStdioOptionsFromEnv } from "./mcp-connector.js";
 import { McpOAuthBroker } from "./mcp-oauth.js";
 import { reconcileMediaVideos } from "./media-video-poll.js";
+import { reconcileActiveMeetings } from "./meetings.js";
 import { createMessagingContextLoader } from "./messaging-context.js";
 import { createModelCreditReconciler } from "./model-credit-reconciler.js";
+import { reconcileOrchestrations } from "./orchestration.js";
 import { localModelsApiKey } from "./pi-local-provider-id.js";
 import type { PipedreamEnvironmentValues } from "./pipedream-connector.js";
 import {
@@ -277,5 +279,7 @@ export function createRunReconciler(
     ),
     reconcileAuditLog: createAuditLogReconciler(prisma, auditLogConfig()),
     reconcileIdleComputers: createIdleComputerSweeper({ prisma, jobs }),
+    reconcileOrchestrations: () => reconcileOrchestrations({ prisma, jobs }),
+    reconcileMeetings: () => reconcileActiveMeetings({ prisma, jobs }),
   });
 }

@@ -13,7 +13,7 @@ describe("index.html theme bootstrap", () => {
 
   it("uses the web background tokens for theme-color", () => {
     expect(html).toContain(
-      `<meta name="theme-color" content="${webDarkTokens.background.toLowerCase()}" />`,
+      `<meta name="theme-color" content="${webLightTokens.background.toLowerCase()}" />`,
     );
     expect(script).toContain(
       `theme === "light" ? "${webLightTokens.background.toLowerCase()}" : "${webDarkTokens.background.toLowerCase()}"`,

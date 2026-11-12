@@ -70,6 +70,8 @@ function startsPeerWork(message: PresentableMessage): boolean {
     message.blocks.some(
       (block) =>
         block.kind === "bot_message_received" &&
+        // A tracked orchestration child replies for the user, not to continue a peer exchange.
+        !block.orchestrationId &&
         (block.intent === undefined || block.intent === "request" || block.intent === "question"),
     )
   );

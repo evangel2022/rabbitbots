@@ -171,6 +171,14 @@ export function ShellSidebar({
             toggleActivityMode();
           }}
           searchOpen={searchOpen && !mini}
+          onMeetings={() => {
+            setMobileOpen(false);
+            navigate("/app/meetings");
+          }}
+          onWorkforce={() => {
+            setMobileOpen(false);
+            navigate("/app/workforce");
+          }}
           onSearch={() => {
             if (searchOpen && !mini) {
               if (activityMode) setActivityFilters({ ...activityFilters, query: "" });

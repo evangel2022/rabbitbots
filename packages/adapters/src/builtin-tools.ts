@@ -113,6 +113,8 @@ export const DELEGATION_TOOL_NAMES = new Set<string>([
   "archive_bot",
   "handoff_to_bot",
   "message_bot",
+  "delegate_task",
+  "delegated_task_status",
   ...FLEET_TOOL_NAMES,
 ]);
 
@@ -1354,6 +1356,44 @@ export const builtinAgentTools: ConnectorTool[] = [
     },
   },
   {
+    name: "delegate_task",
+    description:
+      "Delegate one bounded subtask to another Bot in this Space. The subtask has its own Task, Run and attempts. Never delegate to yourself, cycles, or more than three levels.",
+    inputSchema: {
+      type: "object",
+      properties: {
+        assigneeBotId: { type: "string", description: "Bot in this Space to delegate to." },
+        title: { type: "string", maxLength: 300, description: "Short subtask title." },
+        description: {
+          type: "string",
+          maxLength: 4000,
+          description: "What the other Bot should do.",
+        },
+        acceptanceCriteria: {
+          type: "string",
+          maxLength: 4000,
+          description: "How the result will be verified.",
+        },
+        priority: {
+          type: "string",
+          enum: ["LOW", "NORMAL", "HIGH", "URGENT"],
+          description: "Priority. Defaults to normal.",
+        },
+      },
+      required: ["assigneeBotId", "title", "acceptanceCriteria"],
+    },
+  },
+  {
+    name: "delegated_task_status",
+    description: "Read the current status, result and evidence of a task you delegated.",
+    inputSchema: {
+      type: "object",
+      properties: { taskId: { type: "string", description: "Delegated task ID." } },
+      required: ["taskId"],
+    },
+    readOnly: true,
+  },
+  {
     name: "ticket_update",
     description: "Update a ticket, including status and owner.",
     inputSchema: {
@@ -1840,6 +1880,62 @@ export const builtinAgentTools: ConnectorTool[] = [
         },
       },
       required: ["message"],
+    },
+  },
+  {
+    name: "start_parallel_delegation",
+    description:
+      "Start a tracked parallel delegation to two or more of the user's other bots. Each child works independently in its own chat. Use this instead of message_bot when one request has separate workstreams that can run in parallel and must be combined into one final answer, such as market research plus a financial analysis. Returns immediately; do not wait, poll, or send the same request with message_bot. When every child settles, you will be asked to write the combined report.",
+    inputSchema: {
+      type: "object",
+      properties: {
+        goal: {
+          type: "string",
+          maxLength: 4000,
+          description: "The overall request in the user's words, used for the combined report.",
+        },
+        tasks: {
+          type: "array",
+          minItems: 2,
+          maxItems: 4,
+          description: "One independent assignment per child bot.",
+          items: {
+            type: "object",
+            properties: {
+              bot_id: { type: "string", description: "Target bot id from your teammate list." },
+              confirm_name: {
+                type: "string",
+                description: "Exact name of the target bot when bot_id is omitted.",
+              },
+              bot_name: {
+                type: "string",
+                description: "Exact target bot name; an alias of confirm_name.",
+              },
+              role: {
+                type: "string",
+                maxLength: 80,
+                description: "Short label for this workstream, such as research or finance.",
+              },
+              task: {
+                type: "string",
+                maxLength: 8000,
+                description:
+                  "What this child must deliver. Include the company, scope and required output.",
+              },
+            },
+            required: ["task"],
+            additionalProperties: false,
+          },
+        },
+        timeout_seconds: {
+          type: "integer",
+          minimum: 60,
+          maximum: 3600,
+          description: "How long the whole delegation may take. Defaults to 900 seconds.",
+        },
+      },
+      required: ["goal", "tasks"],
+      additionalProperties: false,
     },
   },
   {

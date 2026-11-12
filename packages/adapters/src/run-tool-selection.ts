@@ -2,6 +2,7 @@ import {
   disabledBuiltinToolSet,
   FLEET_TOOL_NAMES,
   FLEET_WRITE_TOOL_NAMES,
+  ORCHESTRATION_JOIN_TRIGGER,
 } from "@rakazo/contracts";
 import { BACKGROUND_HELPER_TRIGGER, isBackgroundRunTrigger, isOwnerStartedRun } from "@rakazo/core";
 import { builtinAgentTools } from "./builtin-tools.js";
@@ -179,10 +180,13 @@ export function selectBuiltinToolsForRun(options: {
           "message_user",
           "message_bot",
           "handoff_to_bot",
+          "start_parallel_delegation",
           "message_agent",
           "generate_image",
           "generate_video",
         ].includes(tool.name)) &&
+      (options.trigger !== ORCHESTRATION_JOIN_TRIGGER ||
+        tool.name !== "start_parallel_delegation") &&
       (options.voiceCall || tool.name !== "end_call") &&
       (emailMailbox || !EMAIL_INBOX_TOOL_NAMES.has(tool.name)) &&
       ((emailMailbox && options.emailSend) || tool.name !== "send_email") &&

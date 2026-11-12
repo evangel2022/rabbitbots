@@ -38,6 +38,7 @@ import {
   listBoardTickets,
   updateTicket,
 } from "./ticket-tools.js";
+import { delegateWorkforceTask, getWorkforceTaskView } from "./workforce-tasks.js";
 
 /** A command watch may not run what the desktop guard keeps the bot from running itself. */
 function commandWatchGuardError(ctx: RunContext, watch: unknown): string | undefined {
@@ -314,6 +315,45 @@ export const taskTools: ToolHandlers = {
         },
       ),
     );
+  },
+  async delegate_task(ctx, call) {
+    const { deps, run, bot } = ctx;
+    const { args } = call;
+    const task = await delegateWorkforceTask(
+      { prisma: deps.prisma, jobs: deps.jobs },
+      {
+        spaceId: run.spaceId,
+        parentRunId: run.id,
+        delegatorBotId: bot.id,
+        userId: run.userId,
+        assigneeBotId: String(args.assigneeBotId ?? ""),
+        title: String(args.title ?? ""),
+        description: String(args.description ?? ""),
+        acceptanceCriteria: String(args.acceptanceCriteria ?? ""),
+        priority: args.priority ? String(args.priority) : "NORMAL",
+      },
+    );
+    return call.finish({
+      taskId: task.id,
+      assigneeBotId: task.assigneeBotId,
+      assigneeBotName: task.assigneeBotName,
+      status: task.executionStatus,
+    });
+  },
+  async delegated_task_status(ctx, call) {
+    const { deps, run } = ctx;
+    const { args } = call;
+    const task = await getWorkforceTaskView(deps.prisma, run.spaceId, String(args.taskId ?? ""));
+    if (!task) return call.finish({ error: "Delegated task not found in this Space." });
+    return call.finish({
+      taskId: task.id,
+      status: task.executionStatus,
+      resultStatus: task.latestResultStatus,
+      resultSummary: task.latestResultSummary,
+      evidence: task.attempts.at(-1)?.evidence ?? [],
+      acceptanceStatus: task.acceptanceStatus,
+      blockedReason: task.blockedReason,
+    });
   },
   async skill_delete(ctx, call) {
     const { deps, run } = ctx;

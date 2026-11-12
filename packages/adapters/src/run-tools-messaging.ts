@@ -1,4 +1,5 @@
 import { posix } from "node:path";
+import type { RunTrigger } from "@rakazo/contracts";
 import { ATTACHMENT_MAX_COUNT } from "@rakazo/contracts";
 import {
   BOT_MESSAGE_MAX_LENGTH,
@@ -17,6 +18,7 @@ import { messageBot } from "./bot-messages.js";
 import { endCallFromTool, requestUserCall } from "./call-request.js";
 import { normalizeWorkspacePath, resolveBotWorkspacePath } from "./computer-support.js";
 import { handoffToGroupBot } from "./group-handoff.js";
+import { startOrchestration } from "./orchestration-start.js";
 import type { RunContext } from "./run-context.js";
 import {
   canPostLongTaskHeadsUp,
@@ -381,6 +383,54 @@ export const messagingTools: ToolHandlers = {
     );
     if (!result.ok) return call.finish({ error: result.error });
     return call.finish(result);
+  },
+  async start_parallel_delegation(ctx, call) {
+    const { deps, run, bot, thread } = ctx;
+    if (thread.groupId)
+      return call.finish({ error: "Start a parallel delegation from a bot chat, not a group." });
+    const { args } = call;
+    const goal = redactSecrets(String(args.goal ?? "").trim(), ctx.secrets);
+    if (!goal) return call.finish({ error: "goal is required" });
+    const rawTasks = Array.isArray(args.tasks) ? args.tasks : [];
+    const tasks = rawTasks.map((raw) => {
+      const item = (raw ?? {}) as Record<string, unknown>;
+      return {
+        botId: item.bot_id ? String(item.bot_id) : undefined,
+        botName: item.bot_name
+          ? String(item.bot_name)
+          : item.confirm_name
+            ? String(item.confirm_name)
+            : undefined,
+        role: item.role ? String(item.role) : undefined,
+        task: redactSecrets(String(item.task ?? ""), ctx.secrets),
+      };
+    });
+    const started = await startOrchestration(
+      deps,
+      { id: bot.id, name: bot.name },
+      { ...run, trigger: run.trigger as RunTrigger },
+      {
+        goal,
+        tasks,
+        timeoutSeconds: Number(args.timeout_seconds),
+        clientNonce: call.effectKey,
+      },
+    );
+    if (!started.ok) return call.finish({ error: started.error });
+    return call.finish({
+      ok: true,
+      orchestration_id: started.orchestrationId,
+      status: started.status,
+      children: started.children.map((child) => ({
+        role: child.role,
+        bot_id: child.botId,
+        bot_name: child.botName,
+        status: child.status,
+      })),
+      note: started.replayed
+        ? "This delegation was already started; do not start it again."
+        : "Delegated. End your turn now. The children run in parallel; when they settle you will be asked to write the final report. Do not poll, message the children, or present partial results as final.",
+    });
   },
   async handoff_to_bot(ctx, call) {
     const { deps, run, thread } = ctx;

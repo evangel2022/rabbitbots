@@ -50,6 +50,7 @@ import {
   McpApprovalCard,
 } from "./message-cards";
 import { MessageHoverActions } from "./message-hover-actions";
+import { TextWithOutline } from "./message-outline";
 
 export const MessageView = memo(function MessageView({
   artifactTarget,
@@ -293,13 +294,17 @@ export const MessageView = memo(function MessageView({
                       key={i}
                       data-quote-message-id={block.kind === "text" ? quoteMessageId : undefined}
                     >
-                      <ChatMarkdown
-                        streaming={block.kind === "progress"}
-                        renderMention={renderMention}
-                        onOpenPage={openPage}
-                      >
-                        {block.text}
-                      </ChatMarkdown>
+                      {block.kind === "text" ? (
+                        <TextWithOutline text={block.text}>
+                          <ChatMarkdown renderMention={renderMention} onOpenPage={openPage}>
+                            {block.text}
+                          </ChatMarkdown>
+                        </TextWithOutline>
+                      ) : (
+                        <ChatMarkdown streaming renderMention={renderMention} onOpenPage={openPage}>
+                          {block.text}
+                        </ChatMarkdown>
+                      )}
                     </div>
                   );
                 }
@@ -593,9 +598,11 @@ export const MessageView = memo(function MessageView({
                   dir="auto"
                 >
                   <div data-quote-message-id={quoteMessageId}>
-                    <ChatMarkdown renderMention={renderMention} onOpenPage={openPage}>
-                      {block.text}
-                    </ChatMarkdown>
+                    <TextWithOutline text={block.text}>
+                      <ChatMarkdown renderMention={renderMention} onOpenPage={openPage}>
+                        {block.text}
+                      </ChatMarkdown>
+                    </TextWithOutline>
                   </div>
                   {voiceReady ? (
                     <Button

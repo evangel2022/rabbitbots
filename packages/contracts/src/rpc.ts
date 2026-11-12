@@ -169,6 +169,26 @@ import {
   McpSourcePresetSchema,
 } from "./mcp.js";
 import {
+  CancelMeetingInput,
+  CreateMeetingInput,
+  MeetingActionAcceptanceInput,
+  MeetingActionAssignInput,
+  MeetingActionExecuteInput,
+  MeetingActionItemView,
+  MeetingConditionsConfirmInput,
+  MeetingDecisionApprovalInput,
+  MeetingDecisionApprovalResult,
+  MeetingDecisionView,
+  MeetingIdInput,
+  MeetingListOutput,
+  MeetingMessageSendInput,
+  MeetingMessagesListInput,
+  MeetingMessagesListOutput,
+  MeetingMessageView,
+  MeetingView,
+  UpdateMeetingInput,
+} from "./meetings.js";
+import {
   ModelApiProtocolSchema,
   ModelBackupChoiceSchema,
   ModelBackupListSchema,
@@ -182,6 +202,7 @@ import {
 } from "./model-connections.js";
 import { ModelHeadersSchema } from "./model-headers.js";
 import { ModelRoleSchema, ModelRoleUpdateSchema, ModelRoleViewSchema } from "./model-roles.js";
+import { OrchestrationListInput, OrchestrationListOutput } from "./orchestration.js";
 import {
   PAGE_LIST_MAX_LIMIT,
   PageDetailSchema,
@@ -207,6 +228,14 @@ import { SearchQueryOutputSchema } from "./search.js";
 import { SecurityEventListInputSchema, SecurityEventSchema } from "./security-events.js";
 import { SettingsScopeSchema, SpaceSettingSchema, settingsScopeInput } from "./settings-scope.js";
 import { SpaceAvailabilitySchema } from "./space-availability.js";
+import {
+  WorkforceDirectTaskInput,
+  WorkforceOverview,
+  WorkforceTaskAcceptanceInput,
+  WorkforceTaskAssignInput,
+  WorkforceTaskExecuteInput,
+  WorkforceTaskView,
+} from "./workforce.js";
 
 const botId = z.object({ botId: Id });
 const groupId = z.object({ groupId: Id });
@@ -1515,6 +1544,39 @@ export const appContract = {
       // The longest origin: a scheme, a 253-character host name and a port.
       .input(z.object({ origin: z.string().max("https://".length + 253 + ":65535".length) }))
       .output(z.object({ icon: z.string().nullable(), retry: z.boolean().optional() })),
+  },
+  orchestrations: {
+    list: oc.input(OrchestrationListInput).output(OrchestrationListOutput),
+  },
+  meetings: {
+    list: oc.output(MeetingListOutput),
+    get: oc.input(MeetingIdInput).output(MeetingView),
+    create: oc.input(CreateMeetingInput).output(MeetingView),
+    update: oc.input(UpdateMeetingInput).output(MeetingView),
+    start: oc.input(MeetingIdInput).output(MeetingView),
+    cancel: oc.input(CancelMeetingInput).output(MeetingView),
+    messages: {
+      list: oc.input(MeetingMessagesListInput).output(MeetingMessagesListOutput),
+      send: oc.input(MeetingMessageSendInput).output(MeetingMessageView),
+    },
+    decisions: {
+      approve: oc.input(MeetingDecisionApprovalInput).output(MeetingDecisionApprovalResult),
+      confirmConditions: oc.input(MeetingConditionsConfirmInput).output(MeetingDecisionView),
+    },
+    actions: {
+      execute: oc.input(MeetingActionExecuteInput).output(MeetingActionItemView),
+      assign: oc.input(MeetingActionAssignInput).output(MeetingActionItemView),
+      accept: oc.input(MeetingActionAcceptanceInput).output(MeetingActionItemView),
+    },
+  },
+  workforce: {
+    overview: oc.output(WorkforceOverview),
+    tasks: {
+      create: oc.input(WorkforceDirectTaskInput).output(WorkforceTaskView),
+      execute: oc.input(WorkforceTaskExecuteInput).output(WorkforceTaskView),
+      assign: oc.input(WorkforceTaskAssignInput).output(WorkforceTaskView),
+      accept: oc.input(WorkforceTaskAcceptanceInput).output(WorkforceTaskView),
+    },
   },
   runs: {
     list: oc.input(z.object({ filter: z.enum(["active", "recent"]) })).output(RunsListOutputSchema),

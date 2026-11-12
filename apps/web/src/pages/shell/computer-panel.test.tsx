@@ -94,12 +94,19 @@ afterEach(async () => {
   vi.unstubAllGlobals();
 });
 
-it.each([null, computer("stopped"), computer("suspended")])(
-  "shows an idle computer asleep until its Wake button is pressed",
-  async (status) => {
+it.each([
+  { status: null, label: "Not started", action: "Start" },
+  { status: computer("stopped"), label: "Stopped", action: "Start" },
+  { status: computer("suspended"), label: "Asleep", action: "Wake" },
+])(
+  "shows an idle computer's real state beside its $action button",
+  async ({ status, label, action }) => {
     const onOpen = await render(status);
     expect(container.querySelector("iframe")).toBeNull();
-    expect(container.querySelector('[data-state="idle"]')?.textContent).toContain("Asleep");
+    expect(container.querySelector('[data-state="idle"]')?.textContent).toContain(label);
+    expect(container.querySelector('[data-testid="computer-preview-open"]')?.textContent).toContain(
+      action,
+    );
     await act(async () =>
       container.querySelector<HTMLButtonElement>('[data-testid="computer-preview-open"]')?.click(),
     );

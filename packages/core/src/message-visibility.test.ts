@@ -73,6 +73,26 @@ describe("user-visible messages", () => {
     ).toEqual(["user", "sent", "received", "answer"]);
   });
 
+  it("keeps a tracked orchestration child report inline for the user", () => {
+    const messages = [
+      message("orchestration-request", "run-child", [
+        {
+          kind: "bot_message_received",
+          fromBotId: "ceo",
+          fromBotName: "CEO Assistant",
+          text: "Research the market.",
+          intent: "request",
+          orchestrationId: "orchestration-1",
+        },
+      ]),
+      message("child-report", "run-child", [{ kind: "text", text: "Research report." }]),
+    ];
+    expect(
+      userVisibleMessages(messages, { includePeerReceipts: true }).map((item) => item.id),
+    ).toEqual(["orchestration-request", "child-report"]);
+    expect(userVisibleMessages(messages).map((item) => item.id)).toEqual(["child-report"]);
+  });
+
   it("folds peer-run replies under their received marker", () => {
     const messages = [
       ...peerExchange,

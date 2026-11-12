@@ -1,8 +1,17 @@
 import { useLingui } from "@lingui/react/macro";
 import type { Bot } from "@rakazo/contracts";
 import { Button, Popover, PopoverContent, PopoverTrigger } from "@rakazo/ui-web";
-import { Bell, PanelLeftClose, PanelLeftOpen, Plus, Search } from "lucide-react";
+import {
+  Bell,
+  BriefcaseBusiness,
+  Landmark,
+  PanelLeftClose,
+  PanelLeftOpen,
+  Plus,
+  Search,
+} from "lucide-react";
 import { IconTooltip } from "../../components/IconTooltip";
+import { RabbitBotsWordmark } from "../../components/RabbitBotsBrand";
 import { desktopBridge } from "../../lib/desktop";
 import type { Panel } from "../../lib/right-panel-state";
 import { WindowChrome } from "../WindowChrome";
@@ -16,6 +25,8 @@ export function SidebarHeader({
   toggleActivityMode,
   searchOpen = false,
   onSearch,
+  onMeetings,
+  onWorkforce,
   setBotsSidebarCollapsedPref,
   bots,
   setMobileSidebarOpen,
@@ -31,6 +42,8 @@ export function SidebarHeader({
   toggleActivityMode: () => void;
   searchOpen?: boolean;
   onSearch?: () => void;
+  onMeetings?: () => void;
+  onWorkforce?: () => void;
   setBotsSidebarCollapsedPref: (collapsed: boolean) => void;
   bots: Bot[];
   setMobileSidebarOpen: (open: boolean) => void;
@@ -46,7 +59,12 @@ export function SidebarHeader({
     <div
       className={`app-drag flex items-center ${mini ? `flex-col gap-2 px-0 pb-2 ${hasWindowChrome ? "pt-4" : "pt-2"}` : "justify-between px-[18px] pb-3 pt-4"}`}
     >
-      {!mini || hasWindowChrome ? <WindowChrome /> : null}
+      {!mini || hasWindowChrome ? (
+        <div className="flex min-w-0 items-center gap-2.5">
+          {hasWindowChrome ? <WindowChrome /> : null}
+          {!mini ? <RabbitBotsWordmark showText={!hasWindowChrome} /> : null}
+        </div>
+      ) : null}
       <div className={`relative flex items-center ${mini ? "flex-col gap-0.5" : "gap-1"}`}>
         {onSearch ? (
           <IconTooltip label={t`Search`}>
@@ -60,6 +78,34 @@ export function SidebarHeader({
               className="app-no-drag text-muted-foreground"
             >
               <Search size={15} strokeWidth={1.8} aria-hidden="true" />
+            </Button>
+          </IconTooltip>
+        ) : null}
+        {onMeetings ? (
+          <IconTooltip label={t`Executive Boardroom`}>
+            <Button
+              variant="ghost"
+              size="icon-sm"
+              aria-label={t`Executive Boardroom`}
+              data-testid="meetings-nav"
+              onClick={onMeetings}
+              className="app-no-drag text-muted-foreground"
+            >
+              <Landmark size={15} strokeWidth={1.8} aria-hidden="true" />
+            </Button>
+          </IconTooltip>
+        ) : null}
+        {onWorkforce ? (
+          <IconTooltip label={t`AI Workforce`}>
+            <Button
+              variant="ghost"
+              size="icon-sm"
+              aria-label={t`AI Workforce`}
+              data-testid="workforce-nav"
+              onClick={onWorkforce}
+              className="app-no-drag text-muted-foreground"
+            >
+              <BriefcaseBusiness size={15} strokeWidth={1.8} aria-hidden="true" />
             </Button>
           </IconTooltip>
         ) : null}

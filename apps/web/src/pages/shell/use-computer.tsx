@@ -59,11 +59,14 @@ export function useComputerState({
   panel,
   activeId,
   activeBotId,
+  workspaceVisible = false,
 }: {
   rpc: ReturnType<typeof createSpaceRpc>;
   panel: Panel;
   activeId: string | undefined;
   activeBotId: RefObject<string | undefined>;
+  /** The always-on computer rail is showing this bot. */
+  workspaceVisible?: boolean;
 }) {
   const { t } = useLingui();
   const [computer, setComputer] = useState<ComputerStatus | null>(null);
@@ -79,6 +82,8 @@ export function useComputerState({
   const [screenUrl, setScreenUrl] = useState<string | null>(null);
   const screenUrlRef = useRef(screenUrl);
   const [screenUrlLoadedBotId, setScreenUrlLoadedBotId] = useState<string | null>(null);
+  // The workspace can open on an already-running computer; load that screen once on open.
+  const workspaceScreenLoaded = useRef<string | null>(null);
   const [computerOpen, setComputerOpen] = useState(false);
   const [computerBotId, setComputerBotId] = useState<string | undefined>();
   const computerOpenRef = useRef(false);
@@ -376,7 +381,7 @@ export function useComputerState({
   }, [computerOpen]);
   const screenRequest = useRef(0);
   const computerVisible = useRef(false);
-  computerVisible.current = panel === "computer" || computerOpen;
+  computerVisible.current = panel === "computer" || computerOpen || workspaceVisible;
   computerOpenRef.current = computerOpen;
   computerBotIdRef.current = computerBotId ?? activeId;
 
@@ -458,6 +463,60 @@ export function useComputerState({
     });
   }
 
+  /**
+   * A workspace opened on an already-running computer has no screen URL yet. This read is
+   * deliberately outside the latest-request token: it is the only read for that view, and the
+   * reconnect/frame logic must not cancel it before its one-time capability commits.
+   */
+  async function loadWorkspaceScreen(id: string) {
+    if (!computerVisible.current) return;
+    try {
+      const screen = await rpc.computer.screenUrl({ botId: id });
+      if (
+        !computerVisible.current ||
+        (computerBotIdRef.current !== id && activeBotId.current !== id)
+      )
+        return;
+      setScreenUrl(screen.url);
+      setScreenUrlLoadedBotId(screen.url ? id : null);
+      setComputerError(null);
+      setComputerErrorFromScreen(false);
+      cacheComputerFor(id, { screenUrl: screen.url });
+    } catch (error) {
+      if (!computerVisible.current) return;
+      setScreenUrl(null);
+      setScreenUrlLoadedBotId(null);
+      setComputerError(errorText(error, t`Could not connect to the computer screen`));
+      setComputerErrorFromScreen(true);
+    }
+  }
+  /** A stop/restart invalidates the one-time capability; the workspace reads a fresh one. */
+  function clearWorkspaceScreen() {
+    workspaceScreenLoaded.current = null;
+    setScreenUrl(null);
+    setScreenUrlLoadedBotId(null);
+    setScreenLoadError(null);
+  }
+  const loadWorkspaceScreenRef = useRef(loadWorkspaceScreen);
+  loadWorkspaceScreenRef.current = loadWorkspaceScreen;
+  useEffect(() => {
+    if (!workspaceVisible || panel === "computer" || !computer?.botId) {
+      workspaceScreenLoaded.current = null;
+      return;
+    }
+    if (computer.state !== "running") {
+      workspaceScreenLoaded.current = null;
+      setScreenUrl(null);
+      setScreenUrlLoadedBotId(null);
+      setScreenLoadError(null);
+      return;
+    }
+    if (screenUrlLoadedBotId === computer.botId) return;
+    if (workspaceScreenLoaded.current === computer.botId) return;
+    workspaceScreenLoaded.current = computer.botId;
+    void loadWorkspaceScreenRef.current(computer.botId);
+  }, [workspaceVisible, panel, computer?.botId, computer?.state, screenUrlLoadedBotId]);
+
   /** The bot's last read-only screen, while its capability still has time left. */
   function viewScreenUrlFor(botId: string) {
     const url = viewScreenUrls.current.get(botId) ?? null;
@@ -511,6 +570,7 @@ export function useComputerState({
     computerVisible,
     refreshComputerScreen,
     viewScreenUrlFor,
+    clearWorkspaceScreen,
   };
 }
 
@@ -627,6 +687,7 @@ export function useComputerControls({
     const targetScreen = computer?.botId === targetBotId ? screenUrl : (cached?.screenUrl ?? null);
     const needsBoot = force || targetComputer?.state !== "running" || !targetScreen;
     if (showProgress && needsBoot) setBootingBotId(targetBotId);
+    if (needsBoot) state.clearWorkspaceScreen();
     setComputerError(null);
     setComputerErrorFromScreen(false);
     try {
@@ -799,6 +860,25 @@ export function useComputerControls({
       return false;
     }
   }
+  /** Wakes or starts the visible computer without opening the full-screen view. */
+  async function startComputer(botId?: string) {
+    const id = botId ?? active?.id;
+    if (!id) return false;
+    computerBotIdRef.current = id;
+    setComputerBotId(id);
+    try {
+      await bootComputer({
+        botId: id,
+        takeControl: false,
+        showProgress: true,
+        force: true,
+      });
+      return true;
+    } catch {
+      return false;
+    }
+  }
+
   const openComputerRef = useRef(openComputer);
   openComputerRef.current = openComputer;
   const onOpenComputer = useCallback((botId?: string) => {
@@ -934,6 +1014,7 @@ export function useComputerControls({
   return {
     computerBot,
     openComputer,
+    startComputer,
     onOpenComputer,
     releaseComputer,
     refreshComputerFor,

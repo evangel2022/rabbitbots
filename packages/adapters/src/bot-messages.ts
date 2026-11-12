@@ -21,6 +21,7 @@ import {
 } from "@rakazo/db";
 import { getLogger } from "@rakazo/logging";
 import type { ExecutorDeps } from "./executor-deps.js";
+import { reconcileOrchestration } from "./orchestration.js";
 import { runLeaseFor } from "./run-messages.js";
 
 /**
@@ -84,6 +85,10 @@ export async function messageBot(
     message: string;
     intent?: BotMessageIntent;
     deliveryKey?: string;
+    /** Set when this is one child of a tracked orchestration; its result joins later. */
+    orchestrationId?: string;
+    /** The child row to attach this delivery and run to, inside the same transaction. */
+    orchestrationChildId?: string;
     /** Attachments filed under the recipient's chat, shown there and copied to its computer. */
     files?: Array<Extract<MessageBlock, { kind: "image" | "file" }>>;
   },
@@ -148,6 +153,7 @@ export async function messageBot(
     toBotName: target.name,
     text: message,
     intent,
+    orchestrationId: input.orchestrationId,
   };
   const files = input.files ?? [];
 
@@ -232,6 +238,7 @@ export async function messageBot(
           text: message,
           hop,
           intent,
+          orchestrationId: input.orchestrationId,
           returnToMessageId: outbound.id,
         };
         const inbound = await createThreadMessageInTransaction(tx, {
@@ -268,6 +275,23 @@ export async function messageBot(
           },
           select: { id: true },
         });
+        if (input.orchestrationChildId) {
+          const attached = await tx.orchestrationChild.updateMany({
+            where: {
+              id: input.orchestrationChildId,
+              ...(input.orchestrationId ? { orchestrationId: input.orchestrationId } : {}),
+              status: "pending",
+            },
+            data: {
+              threadId: targetThreadId,
+              taskId: task.id,
+              runId: nextRun.id,
+              status: "queued",
+            },
+          });
+          if (attached.count !== 1)
+            throw new Error("The orchestration child is no longer waiting for its run.");
+        }
         await tx.message.update({ where: { id: inbound.id }, data: { runId: nextRun.id } });
         const inboundEvent = await appendEventInTransaction(tx, {
           spaceId: run.spaceId,
@@ -346,6 +370,18 @@ export async function returnBotMessageOutcome(
   options?: { forceUnread?: boolean },
 ) {
   const source = await loadBotMessageContext(deps.prisma, run.sourceMessageId);
+  if (source?.orchestrationId) {
+    // The orchestration collects the persisted child result and writes one join report.
+    // Returning it here too would wake the parent separately for every child.
+    await reconcileOrchestration(
+      { prisma: deps.prisma, jobs: deps.jobs },
+      source.orchestrationId,
+    ).catch((error) => {
+      getLogger().error("orchestration child outcome", error);
+    });
+    await markBotOutcomeReturned(deps.prisma, run.id);
+    return true;
+  }
   if (!source) {
     await markBotOutcomeReturned(deps.prisma, run.id);
     // Handled: nothing to deliver. Return true so callers do not release a reservation.

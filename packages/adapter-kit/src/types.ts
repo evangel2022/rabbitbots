@@ -819,6 +819,11 @@ export interface VoiceTranscribeRequest {
 
 export interface BackgroundJobPayloads {
   "run.continue": { runId: string };
+  /** Advance one persisted Executive Boardroom meeting through the existing Bot runtime. */
+  "meeting.reconcile": { meetingId: string };
+  /** Reconcile one CEO-approved meeting action after its Bot run reaches a terminal state. */
+  "meeting.action.reconcile": { actionItemId: string };
+  "workforce.task.reconcile": { taskId: string };
   "routine.wakeup": { routineId: string; scheduledFor: string };
   /** Run a failed routine run once more; the payload names the failed run. */
   "routine.retry": { runId: string };

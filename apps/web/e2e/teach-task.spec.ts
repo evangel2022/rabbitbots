@@ -26,7 +26,7 @@ test("teach a task records interaction and saves a draft", async ({ page }, test
   await captureScreenshot(page, testInfo, "teach-sidepanel-simple");
 
   const openButton = sidePanel.getByTestId("computer-preview-open");
-  await expect(openButton).toHaveText("Wake");
+  await expect(openButton).toHaveText(/^(Wake|Start)$/);
 
   await openButton.click();
   await expect(page.getByRole("button", { name: "Close computer" })).toBeVisible();

@@ -4,6 +4,8 @@ import {
   HISTORY_COMPACT_MAX_ATTEMPTS,
   historyCompactJob,
   historyCompactJobKey,
+  meetingReconcileJob,
+  meetingReconcileJobKey,
   messagingDeliverJob,
   parseBackgroundJob,
   routineRetryJob,
@@ -28,6 +30,9 @@ function handlers(): BackgroundJobHandlers {
     "purchase.poll": vi.fn(async () => undefined),
     "media.poll": vi.fn(async () => undefined),
     "push.receipt": vi.fn(async () => undefined),
+    "meeting.reconcile": vi.fn(async () => undefined),
+    "meeting.action.reconcile": vi.fn(async () => undefined),
+    "workforce.task.reconcile": vi.fn(async () => undefined),
   };
 }
 
@@ -118,5 +123,32 @@ describe("historyCompactJob", () => {
 
   it("keys different threads differently", () => {
     expect(historyCompactJobKey("thread-1")).not.toBe(historyCompactJobKey("thread-2"));
+  });
+});
+
+describe("meetingReconcileJob", () => {
+  it("keys one reconciliation per meeting and bounds retries", () => {
+    expect(meetingReconcileJob("meeting-1")).toEqual({
+      name: "meeting.reconcile",
+      payload: { meetingId: "meeting-1" },
+      replaceKey: meetingReconcileJobKey("meeting-1"),
+      maxAttempts: 8,
+    });
+    expect(meetingReconcileJobKey("meeting-1")).not.toBe(meetingReconcileJobKey("meeting-2"));
+  });
+
+  it("preserves a live recovery job and can replace a dead worker lock", () => {
+    const now = new Date("2026-11-11T12:00:00.000Z");
+    expect(
+      meetingReconcileJob("meeting-1", {
+        keepExisting: true,
+        replaceLockedBefore: now,
+        availableAt: now,
+      }),
+    ).toMatchObject({
+      keepExisting: true,
+      replaceKey: "meeting.reconcile:meeting-1",
+      availableAt: now,
+    });
   });
 });

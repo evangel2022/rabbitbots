@@ -1170,6 +1170,7 @@ export function createRunExecutor(executorDeps: ExecutorDeps) {
           id: runModelId,
           ...(credential ? { connectionId: credential.id } : {}),
           ...resolvedModelRunFields(resolved),
+          ...(run.maxOutputTokens ? { maxTokens: run.maxOutputTokens } : {}),
           thinkingLevel: thinkingLevel ?? resolved.thinkingLevel ?? null,
         };
         // Saved identities win on resume, including when the setting was cleared meanwhile.

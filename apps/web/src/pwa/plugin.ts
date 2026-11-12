@@ -17,9 +17,9 @@ export function webManifest() {
   }));
   return {
     id: "/",
-    name: "Rakazo",
-    short_name: "Rakazo",
-    description: "Your team of always-on agents.",
+    name: "RabbitBots",
+    short_name: "RabbitBots",
+    description: "Three AI teammates for the executive office.",
     start_url: "/",
     scope: "/",
     display: "standalone",

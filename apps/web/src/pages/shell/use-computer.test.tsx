@@ -1,5 +1,6 @@
 // @vitest-environment jsdom
 
+import type { ComputerStatus } from "@rakazo/contracts";
 import { COMPUTER_ALLOWANCE_USED_ERROR } from "@rakazo/contracts";
 import { SCREEN_RECONNECT_STABLE_MS } from "@rakazo/core";
 import type { ComponentProps, ReactNode } from "react";
@@ -55,6 +56,34 @@ function Harness() {
   ));
 }
 
+function WorkspaceHarness() {
+  state = useComputerState({
+    rpc: { computer: { screenUrl } } as never,
+    panel: null,
+    activeId: "bot-1",
+    activeBotId: { current: "bot-1" },
+    workspaceVisible: true,
+  });
+  return state.screenUrl ? <iframe data-src={state.screenUrl} title="screen" /> : null;
+}
+
+const runningComputer = {
+  botId: "bot-1",
+  mode: "dedicated",
+  kind: "docker",
+  state: "running",
+  controlHolder: "none",
+  controlBotId: null,
+  takeoverRequested: false,
+  screenAvailable: true,
+  screenWidth: 1280,
+  screenHeight: 800,
+  homeRevision: "empty",
+  busyBotName: null,
+  canUpdate: true,
+  terminalAvailable: true,
+} satisfies ComputerStatus;
+
 const code = () => /auth_code=([^&]+)/.exec(state.screenUrl ?? "")?.[1] ?? null;
 
 async function read() {
@@ -94,6 +123,17 @@ afterEach(() => {
   container.remove();
   vi.unstubAllGlobals();
   vi.useRealTimers();
+});
+
+it("loads the screen when the workspace opens on an already-running computer", async () => {
+  await act(async () => root.render(<WorkspaceHarness />));
+  await act(async () => state.commitComputer(runningComputer));
+  await act(async () => {
+    await Promise.resolve();
+  });
+  expect(screenUrl).toHaveBeenCalledWith({ botId: "bot-1" });
+  expect(state.screenUrl).toContain("auth_code=code-1");
+  expect(container.querySelector("iframe")).not.toBeNull();
 });
 
 it("shows a Wuying screen's failure and waits for Retry rather than spend another code", async () => {

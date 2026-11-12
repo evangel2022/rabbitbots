@@ -53,6 +53,7 @@ import { readBotsSidebarCollapsed, writeBotsSidebarCollapsed } from "../lib/bots
 import { setCallMinimized, startCall, useCallSession } from "../lib/call-session";
 import { composerEnterToSendPreference } from "../lib/composer-enter-to-send-pref";
 import { computersAreUnavailable } from "../lib/computer-sandbox";
+import { computerWorkspacePreference } from "../lib/computer-workspace-pref";
 import { desktopBridge } from "../lib/desktop";
 import { hasOpenDialog } from "../lib/has-open-dialog";
 import { PagesProvider, usePagesForChat } from "../lib/pages";
@@ -65,6 +66,7 @@ import { createSpaceRpc, selectedSpaceId } from "../lib/rpc";
 import { markShellReady, useSpaceEpoch } from "../lib/space-switch";
 import { toolActivityPreference } from "../lib/tool-activity-preference";
 import { useDesktopBadge } from "../lib/use-desktop-badge";
+import { useMinWidth } from "../lib/use-min-width";
 import { errorText } from "../lib/user-error";
 import { HostComputerPrompt } from "./HostComputerPrompt";
 import { RoutineList } from "./RoutineList";
@@ -76,9 +78,17 @@ import { FALLBACK_BOT_COLOR } from "./shell/chat-shared";
 import { Composer } from "./shell/composer";
 import { ComputerOverlay } from "./shell/computer-overlay";
 import { ComputerPanel } from "./shell/computer-panel";
+import { ComputerWorkspace, ComputerWorkspaceRail } from "./shell/computer-workspace";
 import type { CreateBotDialogInput } from "./shell/create-bot-dialog";
 import type { ImportSetupTarget } from "./shell/import-setup-card";
+import {
+  findInvestorDemoTeam,
+  INVESTOR_DEMO_TASK,
+  InvestorDemoDialog,
+  InvestorDemoWelcome,
+} from "./shell/investor-demo";
 import { KeyboardShortcutsDialog } from "./shell/keyboard-shortcuts-dialog";
+import { OrchestrationStrip } from "./shell/orchestration-strip";
 import { ShellDialogs, useShellDialogs } from "./shell/shell-dialogs";
 import { AppOverlays, SettingsOverlays } from "./shell/shell-overlays";
 import { cycleBotId, isApplePlatform, useShellShortcuts } from "./shell/shell-shortcuts";
@@ -97,6 +107,7 @@ import { useComposerMentions } from "./shell/use-composer-mentions";
 import { useComputerControls, useComputerState } from "./shell/use-computer";
 import { useMessageJump } from "./shell/use-message-jump";
 import { useMobileSidebar } from "./shell/use-mobile-sidebar";
+import { useOrchestrations } from "./shell/use-orchestrations";
 import { usePaletteActions } from "./shell/use-palette-actions";
 import { useReadAloud } from "./shell/use-read-aloud";
 import { useReportedUiLocale } from "./shell/use-reported-ui-locale";
@@ -199,8 +210,7 @@ function SpaceShell() {
   const rightPanel = useRightPanel({ searchParams, setSearchParams });
   const { panel, setPanel, modelFocusRequest, setModelFocusRequest } = rightPanel;
   const lastBotTab = useRef<Panel>("routines");
-  if (panel === "routines" || panel === "computer" || panel === "pages" || panel === "settings")
-    lastBotTab.current = panel;
+  if (panel === "routines" || panel === "pages" || panel === "settings") lastBotTab.current = panel;
   const [peerConversation, setPeerConversation] = usePreloadRecoveryState<{
     peerBotId: string;
     peerBotName: string;
@@ -252,6 +262,8 @@ function SpaceShell() {
   const isMobileSidebar = useIsMobile();
   const pages = usePagesForChat();
   const miniSidebar = botsSidebarCollapsed && !isMobileSidebar;
+  const workspacePreference = computerWorkspacePreference.use();
+  const wideWorkspace = useMinWidth(1280);
   const [botMenu, setBotMenu] = useState<{ kind: "bot" | "group"; id: string } | null>(null);
   const closeBotMenu = useCallback(() => setBotMenu(null), []);
   const currentSpaceId = selectedSpaceId() ?? bootstrapMe?.spaceId ?? null;
@@ -298,12 +310,46 @@ function SpaceShell() {
     [active?.color, active?.id],
   );
   const activeGroup = groups.find((group) => group.id === groupId);
+  const { orchestration: activeOrchestration } = useOrchestrations(
+    active?.id,
+    Boolean(snapshot?.run),
+  );
+  // The seeded CEO/Research/Finance trio is the productized investor demo. No report is stored
+  // here: the entry only sends the preset task to the real team.
+  const investorDemo = useMemo(() => findInvestorDemoTeam(bots), [bots]);
+  const [investorDemoOpen, setInvestorDemoOpen] = useState(false);
+  const investorDemoActive = Boolean(
+    investorDemo && !inGroup && active?.id === investorDemo.ceo.id,
+  );
+  useEffect(() => {
+    if (!investorDemoActive) setInvestorDemoOpen(false);
+  }, [investorDemoActive]);
+  // The old Computer tab stays as the narrow-screen fallback; wide screens use the rail.
+  useEffect(() => {
+    if (panel === "computer" && wideWorkspace) setPanel(null);
+  }, [panel, wideWorkspace, setPanel]);
+  const workspaceAvailable = wideWorkspace && Boolean(active) && !inGroup && panel === null;
+  const computerWorkspaceOpen = workspaceAvailable && workspacePreference === "open";
+  const computerWorkspaceRail = workspaceAvailable && workspacePreference === "closed";
   const activeBotId = useRef<string | undefined>(inGroup ? undefined : active?.id);
   activeBotId.current = inGroup ? undefined : active?.id;
   const activeGroupId = useRef<string | undefined>(groupId);
   activeGroupId.current = groupId;
-  const computerState = useComputerState({ rpc, panel, activeId: active?.id, activeBotId });
+  const computerState = useComputerState({
+    rpc,
+    panel,
+    activeId: active?.id,
+    activeBotId,
+    workspaceVisible: computerWorkspaceOpen,
+  });
   const { computer, computerOpen, setComputerOpen, booting, commitComputer } = computerState;
+  // The rail can appear after a thread snapshot already arrived; ask for its screen then.
+  const refreshComputerScreenRef = useRef(computerState.refreshComputerScreen);
+  refreshComputerScreenRef.current = computerState.refreshComputerScreen;
+  useEffect(() => {
+    if (!computerWorkspaceOpen || !active) return;
+    void refreshComputerScreenRef.current(active.id).catch(() => undefined);
+  }, [computerWorkspaceOpen, active?.id]);
   const [cleaningUpDisk, setCleaningUpDisk] = useState(false);
   const dismissDiskWarning = (botId: string) => {
     const current = computerState.computerRef.current;
@@ -733,6 +779,26 @@ function SpaceShell() {
     flushPendingBrowserNotifications,
   });
   const { sending, sendError, stopRun } = composer;
+  const investorDemoHasUserMessage =
+    activeSnapshot?.messages.some((message) => message.role === "user") ?? false;
+  const showInvestorDemoWelcome = Boolean(
+    investorDemoActive && !activeOrchestration && !investorDemoHasUserMessage,
+  );
+  // A fresh account still has the thread-creation ask pending. That is not a demo run in progress:
+  // allow the first send, but block a second demo while a user-triggered run is active.
+  const investorDemoBusy = sending || (composerRunning && investorDemoHasUserMessage);
+  const startInvestorDemo = useCallback(async () => {
+    if (!investorDemoActive || sending || (composerRunning && investorDemoHasUserMessage)) {
+      return false;
+    }
+    return composer.sendMessage(INVESTOR_DEMO_TASK, [], newClientId());
+  }, [
+    composer.sendMessage,
+    composerRunning,
+    investorDemoActive,
+    investorDemoHasUserMessage,
+    sending,
+  ]);
   function openChatSettings(kind: "bot" | "group", id: string) {
     const destKey =
       userId && bootstrapMe?.spaceId
@@ -775,6 +841,25 @@ function SpaceShell() {
   });
 
   const openBot = useCallback((id: string) => navigate(`/app/${id}`), [navigate]);
+  const openOrchestrationReport = useCallback(
+    (messageId: string | null) => {
+      const scroller = thread.messageScroll.current;
+      if (messageId) {
+        const row = scroller?.querySelector(`[data-message-id="${CSS.escape(messageId)}"]`);
+        if (row && scroller) {
+          // A final report is long; land on its title, not its middle.
+          const top =
+            row.getBoundingClientRect().top -
+            scroller.getBoundingClientRect().top +
+            scroller.scrollTop;
+          scroller.scrollTo({ top: Math.max(0, top - 4), behavior: "smooth" });
+          return;
+        }
+      }
+      scroller?.scrollTo({ top: scroller.scrollHeight, behavior: "smooth" });
+    },
+    [thread.messageScroll],
+  );
   // An import's setup checklist re-checks on each thread refresh, so refresh once setup closes.
   const importSetupOpen = useRef(false);
   useEffect(() => {
@@ -1057,6 +1142,17 @@ function SpaceShell() {
               />
             </div>
           ) : null}
+          {!inGroup && active && activeOrchestration ? (
+            <div className="shrink-0 px-4 pt-[68px]">
+              <div className="mx-auto max-w-[60rem]">
+                <OrchestrationStrip
+                  orchestration={activeOrchestration}
+                  onOpenBot={openBot}
+                  onOpenReport={openOrchestrationReport}
+                />
+              </div>
+            </div>
+          ) : null}
           <ChatHeader
             inGroup={inGroup}
             active={active}
@@ -1075,7 +1171,25 @@ function SpaceShell() {
               }
               callBot(bot);
             }}
+            onOpenInvestorDemo={investorDemoActive ? () => setInvestorDemoOpen(true) : undefined}
+            onOpenComputer={
+              !wideWorkspace && !inGroup && active
+                ? () => computerControls.onOpenComputer(active.id)
+                : undefined
+            }
+            showComputerButton={!wideWorkspace && !inGroup && Boolean(active)}
           />
+          {showInvestorDemoWelcome && investorDemo ? (
+            <div className="shrink-0 px-4 pb-2 pt-[76px]">
+              <div className="mx-auto max-w-[60rem]">
+                <InvestorDemoWelcome
+                  team={investorDemo}
+                  busy={investorDemoBusy}
+                  onStart={() => setInvestorDemoOpen(true)}
+                />
+              </div>
+            </div>
+          ) : null}
           {!active && !activeGroup && initialBotsLoaded ? (
             <div className="grid flex-1 place-items-center">
               <Button onClick={() => dialogs.setCreateBotOpen(true)}>
@@ -1206,6 +1320,45 @@ function SpaceShell() {
         ) : null}
       </main>
 
+      {computerWorkspaceOpen && active ? (
+        <ComputerWorkspace
+          bot={active}
+          computer={computer}
+          computerOpen={computerOpen}
+          booting={booting}
+          embeddedScreenUrl={computerControls.embeddedScreenUrl}
+          screenFrameKey={computerState.screenFrameKey}
+          heldScreen={computerState.heldScreen}
+          screenFrameRef={computerState.setScreenFrame}
+          computerScreenError={computerControls.computerScreenError}
+          computerBooting={computerControls.computerBooting}
+          showingRecoveryHint={computerControls.showingRecoveryHint}
+          showComputerRecoveryHint={computerControls.showComputerRecoveryHint}
+          sandboxProvider={bootstrapMe?.sandboxProvider}
+          onRecovered={(sandboxProvider) => {
+            setBootstrapMe((prev) => (prev ? { ...prev, sandboxProvider } : prev));
+            computerControls.holdComputerRecovery();
+          }}
+          onRecoveryDismissed={computerControls.releaseComputerRecovery}
+          onOpenComputerSettings={
+            bootstrapMe?.computerSettingsEnabled === true
+              ? () => openSettings("computer")
+              : undefined
+          }
+          hasControl={computerControls.hasControl}
+          onOpen={() => computerControls.onOpenComputer(active.id)}
+          onStart={() => void computerControls.startComputer(active.id)}
+          onTakeControl={() => void computerControls.openComputer(active.id, true)}
+          onCollapse={() => computerWorkspacePreference.set("closed")}
+        />
+      ) : null}
+      {computerWorkspaceRail ? (
+        <ComputerWorkspaceRail
+          computer={computer}
+          onOpen={() => computerWorkspacePreference.set("open")}
+        />
+      ) : null}
+
       <PageViewHost />
       <CallCard onSettings={() => openSettings("voice")} />
       <IncomingCall
@@ -1304,6 +1457,15 @@ function SpaceShell() {
         setAgentSkills={setAgentSkills}
         onClearBot={(bot) => dialogs.setClearTarget({ kind: "bot", chat: bot })}
       />
+
+      {investorDemoOpen && investorDemo && investorDemoActive ? (
+        <InvestorDemoDialog
+          team={investorDemo}
+          busy={investorDemoBusy}
+          onClose={() => setInvestorDemoOpen(false)}
+          onStart={startInvestorDemo}
+        />
+      ) : null}
 
       <Suspense fallback={null}>
         <ShellDialogs

@@ -82,6 +82,7 @@ export * from "./e2b-sandbox.js";
 export * from "./elevenlabs-voice.js";
 export * from "./email-emulator.js";
 export * from "./email-provider.js";
+export * from "./execution-attempts.js";
 export * from "./executor.js";
 export * from "./expo-push.js";
 export * from "./fake-browser.js";
@@ -120,6 +121,7 @@ export * from "./mcp-transport.js";
 export * from "./media-generation-factory.js";
 export * from "./media-generation-provider.js";
 export * from "./media-video-poll.js";
+export * from "./meetings.js";
 export {
   AGENT_MEMORY_MAX_BYTES,
   buildAgentMemoryPrompt,
@@ -148,6 +150,8 @@ export * from "./openai-compatible-url.js";
 export * from "./openai-compatible-voice.js";
 export * from "./openai-voice.js";
 export * from "./openrouter-usage.js";
+export * from "./orchestration.js";
+export * from "./orchestration-start.js";
 export * from "./page-browser-session.js";
 export * from "./page-share-secrets.js";
 export * from "./paid-services-factory.js";
@@ -225,4 +229,6 @@ export * from "./web-provider-factory.js";
 export * from "./web-ssrf.js";
 export * from "./web-tools.js";
 export * from "./work-activity.js";
+export * from "./workforce.js";
+export * from "./workforce-tasks.js";
 export * from "./wrapped-env.js";

@@ -878,8 +878,8 @@ msgid "Allow once"
 msgstr "Einmal erlauben"
 
 #: src/lib/dictation.ts
-msgid "Allow Rakazo to use Speech Recognition and the microphone in System Settings."
-msgstr "Erlaube Rakazo in den Systemeinstellungen, die Spracherkennung und das Mikrofon zu verwenden."
+msgid "Allow RabbitBots to use Speech Recognition and the microphone in System Settings."
+msgstr "Erlaube RabbitBots in den Systemeinstellungen, die Spracherkennung und das Mikrofon zu verwenden."
 
 #: src/pages/memory-providers/SerenitySettingsForm.tsx
 msgid "Allow writing"
@@ -1631,8 +1631,8 @@ msgstr "Ordner wählen"
 
 #: src/components/ModelCredits.tsx
 #: src/components/SubscriptionGate.tsx
-msgid "Choose how to use Rakazo"
-msgstr "Wähle, wie du Rakazo nutzen möchtest"
+msgid "Choose how to use RabbitBots"
+msgstr "Wähle, wie du RabbitBots nutzen möchtest"
 
 #: src/components/vault/VaultItemEditor.tsx
 msgid "City"
@@ -1968,8 +1968,8 @@ msgstr "Verbinde zuerst den Anbieter dieses Modells."
 
 #. js-lingui-explicit-id
 #: src/lib/run-error.ts
-msgid "Connect your own API key in Models or choose Rakazo credits in Billing."
-msgstr "Verbinde deinen eigenen API-Schlüssel unter Modelle oder wähle Rakazo-Guthaben unter Abrechnung."
+msgid "Connect your own API key in Models or choose RabbitBots credits in Billing."
+msgstr "Verbinde deinen eigenen API-Schlüssel unter Modelle oder wähle RabbitBots-Guthaben unter Abrechnung."
 
 #: src/components/bot-templates/bot-templates-dialog.tsx
 #: src/components/ComputerDeviceSettings.tsx
@@ -2798,8 +2798,8 @@ msgid "Create space"
 msgstr "Space erstellen"
 
 #: src/pages/Auth.tsx
-msgid "Create your Rakazo"
-msgstr "Dein Rakazo erstellen"
+msgid "Create your RabbitBots"
+msgstr "Dein RabbitBots erstellen"
 
 #: src/components/AskCard.tsx
 msgid "Created"
@@ -3285,8 +3285,8 @@ msgid "Ends {day}"
 msgstr "Endet am {day}"
 
 #: src/components/GitHubStarPrompt.tsx
-msgid "Enjoying Rakazo?"
-msgstr "Gefällt dir Rakazo?"
+msgid "Enjoying RabbitBots?"
+msgstr "Gefällt dir RabbitBots?"
 
 #: src/lib/user-error.ts
 msgid "Enter a password"
@@ -3802,8 +3802,8 @@ msgid "How to check"
 msgstr "So wird geprüft"
 
 #: src/components/SignupSurvey.tsx
-msgid "How will you use Rakazo?"
-msgstr "Wie wirst du Rakazo nutzen?"
+msgid "How will you use RabbitBots?"
+msgstr "Wie wirst du RabbitBots nutzen?"
 
 #: src/pages/shell/computer-release-actions.tsx
 msgid "I’m done"
@@ -4929,8 +4929,8 @@ msgid "Not imported"
 msgstr "Nicht importiert"
 
 #: src/pages/shell/import-status.ts
-msgid "Not in Rakazo's catalog"
-msgstr "Nicht im Katalog von Rakazo"
+msgid "Not in RabbitBots's catalog"
+msgstr "Nicht im Katalog von RabbitBots"
 
 #: src/pages/plugins/plugin-browse.tsx
 msgid "Not in the plugin catalog"
@@ -4943,12 +4943,12 @@ msgstr "Jetzt nicht"
 
 #: src/pages/shell/agent-import-plan.tsx
 #: src/pages/shell/import-status.ts
-msgid "Not supported in Rakazo"
-msgstr "In Rakazo nicht unterstützt"
+msgid "Not supported in RabbitBots"
+msgstr "In RabbitBots nicht unterstützt"
 
 #: src/pages/shell/agent-import-plan.tsx
-msgid "Not used by Rakazo"
-msgstr "Wird von Rakazo nicht verwendet"
+msgid "Not used by RabbitBots"
+msgstr "Wird von RabbitBots nicht verwendet"
 
 #: src/components/McpServerHealthLine.tsx
 #: src/pages/plugins/parts.tsx
@@ -5094,8 +5094,8 @@ msgstr "Navigation öffnen"
 #: src/components/pages/PublicPageShell.tsx
 #: src/pages/Invite.tsx
 #: src/pages/SharedPage.tsx
-msgid "Open Rakazo"
-msgstr "Rakazo öffnen"
+msgid "Open RabbitBots"
+msgstr "RabbitBots öffnen"
 
 #: src/pages/ScratchpadSection.tsx
 msgid "Open work"
@@ -5273,8 +5273,8 @@ msgid "Paste a replacement key"
 msgstr "Ersatzschlüssel einfügen"
 
 #: src/pages/model-settings/compatible-model-fields.tsx
-msgid "Paste the OpenAI-compatible address from your server. Rakazo adds /v1 if needed."
-msgstr "Füge die OpenAI-kompatible Adresse deines Servers ein. Rakazo ergänzt /v1 bei Bedarf."
+msgid "Paste the OpenAI-compatible address from your server. RabbitBots adds /v1 if needed."
+msgstr "Füge die OpenAI-kompatible Adresse deines Servers ein. RabbitBots ergänzt /v1 bei Bedarf."
 
 #: src/pages/shell/agent-import.tsx
 msgid "Paste the reply"
@@ -5466,16 +5466,16 @@ msgstr "In Warteschlange"
 
 #: src/pages/AccountSettingsOverlay.tsx
 #: src/pages/shell/avatar-studio-popover.tsx
-msgid "Rakazo"
-msgstr "Rakazo"
+msgid "RabbitBots"
+msgstr "RabbitBots"
 
 #: src/pages/onboarding/use-onboarding-model.ts
-msgid "Rakazo credits"
-msgstr "Rakazo-Guthaben"
+msgid "RabbitBots credits"
+msgstr "RabbitBots-Guthaben"
 
 #: src/pages/memory-providers/HonchoSettingsForm.tsx
-msgid "rakazo-shared and IDs starting with bot- are reserved for Rakazo."
-msgstr "rakazo-shared und IDs, die mit bot- beginnen, sind für Rakazo reserviert."
+msgid "rakazo-shared and IDs starting with bot- are reserved for RabbitBots."
+msgstr "rakazo-shared und IDs, die mit bot- beginnen, sind für RabbitBots reserviert."
 
 #: src/pages/shell/message-hover-actions.tsx
 msgid "React"
@@ -5511,8 +5511,8 @@ msgid "Recall and write"
 msgstr "Abrufen und schreiben"
 
 #: src/pages/memory-providers/HonchoSettingsForm.tsx
-msgid "Recall from this peer; save to Rakazo’s own peers."
-msgstr "Aus diesem Peer abrufen; in Rakazos eigenen Peers speichern."
+msgid "Recall from this peer; save to RabbitBots’s own peers."
+msgstr "Aus diesem Peer abrufen; in RabbitBotss eigenen Peers speichern."
 
 #: src/pages/memory-providers/SerenitySettingsForm.tsx
 msgid "Recall only"
@@ -5943,8 +5943,8 @@ msgstr "Zurück zum Anruf mit {0}"
 
 #: src/pages/McpOAuthCallback.tsx
 #: src/pages/SlackInstallCallback.tsx
-msgid "Return to Rakazo"
-msgstr "Zurück zu Rakazo"
+msgid "Return to RabbitBots"
+msgstr "Zurück zu RabbitBots"
 
 #: src/lib/model-connection-preflight.ts
 msgid "Review provider settings and test again."
@@ -6454,8 +6454,8 @@ msgid "Sign in at <0>{0}</0>, then paste the code here."
 msgstr "Melde dich bei <0>{0}</0> an und füge dann den Code hier ein."
 
 #: src/pages/Auth.tsx
-msgid "Sign in to Rakazo"
-msgstr "Bei Rakazo anmelden"
+msgid "Sign in to RabbitBots"
+msgstr "Bei RabbitBots anmelden"
 
 #: src/lib/user-error.ts
 msgid "Sign in to your existing account to link SSO"
@@ -7138,8 +7138,8 @@ msgid "This server's tool result does not fit the model. Turn off Keep tool resu
 msgstr "Das Tool-Ergebnis dieses Servers passt nicht in das Modell. Schalte „Tool-Ergebnisse vollständig behalten“ für diesen Server aus oder wähle ein anderes Modell."
 
 #: src/pages/model-settings/connection-controls.tsx
-msgid "This subscription sign-in is not available in Rakazo yet. Use a deployment credential or choose another provider."
-msgstr "Diese Abonnementanmeldung ist in Rakazo noch nicht verfügbar. Verwende Zugangsdaten der Bereitstellung oder wähle einen anderen Anbieter."
+msgid "This subscription sign-in is not available in RabbitBots yet. Use a deployment credential or choose another provider."
+msgstr "Diese Abonnementanmeldung ist in RabbitBots noch nicht verfügbar. Verwende Zugangsdaten der Bereitstellung oder wähle einen anderen Anbieter."
 
 #: src/components/bot-templates/bot-templates-dialog.tsx
 msgid "This template was just updated. Check it again."
@@ -7499,8 +7499,8 @@ msgid "Use Protected input for passwords."
 msgstr "Verwende „Geschützte Eingabe“ für Passwörter."
 
 #: src/components/ModelCredits.tsx
-msgid "Use Rakazo credits"
-msgstr "Rakazo-Guthaben verwenden"
+msgid "Use RabbitBots credits"
+msgstr "RabbitBots-Guthaben verwenden"
 
 #: src/pages/memory-providers/HonchoSettingsForm.tsx
 msgid "Use up to 512 letters, digits, _ or -."
@@ -7645,8 +7645,8 @@ msgid "Weekly"
 msgstr "Wöchentlich"
 
 #: src/components/SignupSurvey.tsx
-msgid "Welcome to Rakazo"
-msgstr "Willkommen bei Rakazo"
+msgid "Welcome to RabbitBots"
+msgstr "Willkommen bei RabbitBots"
 
 #: src/pages/shell/dialogs.tsx
 msgid "What about its memories?"
@@ -7657,8 +7657,8 @@ msgid "What can this space use?"
 msgstr "Was darf dieser Space nutzen?"
 
 #: src/components/SignupSurvey.tsx
-msgid "What do you most want Rakazo to help with?"
-msgstr "Wobei soll Rakazo dir am meisten helfen?"
+msgid "What do you most want RabbitBots to help with?"
+msgstr "Wobei soll RabbitBots dir am meisten helfen?"
 
 #: src/pages/shell/message-cards.tsx
 msgid "What do you want me on first?"
