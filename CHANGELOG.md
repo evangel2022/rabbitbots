@@ -6,9 +6,27 @@ The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.1.0/).
 
 ## [Unreleased]
 
-### Fixed
+## [0.9.0] - 2026-11-15
 
-- Connecting an MCP server whose OAuth asks for many permissions, such as PostHog's, no longer fails with "MCP URL exceeds 2048 characters". The browser sign-in link now has its own, larger limit, while MCP server addresses keep the 2,048-character one.
+### Features
+
+- AI Company onboarding creates one Company with a profile and four default AI employees through an explicit, idempotent first-run flow.
+- The Executive Boardroom runs agenda-based AI meetings with decisions, approval history, and durable meeting records.
+- AI Workforce records real Tasks, Runs, execution attempts, evidence and results. A successful Run remains separate from Human CEO acceptance.
+- Bounded delegation lets an AI employee hand off child work to another employee and records the delegated task and result.
+- Supported self-hosted computer providers can give bots browser and desktop access, behind the existing approval and sandbox rules.
+- Bring-your-own-model setup supports a subscription, an API key, or an OpenAI-compatible local server. Per-user and deployment outbound proxy settings cover model traffic.
+
+### Improvements
+
+- Durable tool-invocation identity, recovery metadata and idempotent delegation add recovery paths for long-running work across worker restarts.
+- README, getting-started documentation and model setup now walk a new user from a source checkout to the first AI Company task.
+- README, documentation, screenshots and website copy present the RabbitBots AI Company position and the human CEO boundary clearly.
+
+### Fixes
+
+- Internal meeting review data is rendered as a readable decision card instead of raw JSON. The card preserves state, material disagreement, reason, consensus, disagreements, evidence gaps, the next question and participants, and omits empty sections. Malformed or unrecognised internal structured output falls back without exposing raw data.
+- Connecting an MCP server whose OAuth asks for many permissions, such as PostHog's, no longer fails with "MCP URL exceeds 2048 characters". The browser sign-in link has its own, larger limit, while MCP server addresses keep the 2,048-character one.
 
 ## [0.8.0] - 2026-11-04
 
