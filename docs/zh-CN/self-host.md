@@ -17,7 +17,7 @@ RabbitBots 需要持续运行的后端服务，不是静态网站；`apps/www` �
 
 ```bash
 mkdir -p rakazo && cd rakazo &&
-curl -fsSLO https://raw.githubusercontent.com/elie222/rakazo/main/infra/compose/install-images.sh &&
+curl -fsSLO https://raw.githubusercontent.com/evangel2022/rabbitbots/main/infra/compose/install-images.sh &&
 bash install-images.sh
 ```
 

@@ -21,7 +21,7 @@ Requires Docker Engine 26+ (API 1.45+ for bot home volume subpaths), the Compose
 
 ```bash
 mkdir -p rakazo && cd rakazo &&
-curl -fsSLO https://raw.githubusercontent.com/elie222/rakazo/main/infra/compose/install-images.sh &&
+curl -fsSLO https://raw.githubusercontent.com/evangel2022/rabbitbots/main/infra/compose/install-images.sh &&
 bash install-images.sh
 ```
 
@@ -33,6 +33,16 @@ optional providers before startup, run `bash install-images.sh --prepare-only`, 
 run `bash install-images.sh`. Flags may be combined in either order: `--prepare-only`, `--local`.
 When `RAKAZO_IMAGE_TAG` is a release such as `v0.8.0`, the installer downloads the Compose files
 from that release instead of `main`.
+
+Historical release tags are not copied automatically into the new repository. If a deployment
+is pinned to a tag that is not available there, point the download base at the historical release
+explicitly:
+
+```bash
+RAKAZO_DOWNLOAD_BASE=https://raw.githubusercontent.com/elie222/rakazo/<tag>/infra/compose
+```
+
+The installer keeps using the new repository by default; this override is only for historical pins.
 
 `SANDBOX_PROVIDER` defaults to `docker`. The images Compose file runs a sandbox supervisor
 (from the app image, on the internal network only) and pulls `ghcr.io/elie222/rakazo/computer`.

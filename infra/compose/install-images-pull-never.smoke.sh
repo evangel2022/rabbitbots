@@ -11,6 +11,11 @@ set -e
 [[ "$out" == *"Usage: bash install-images.sh"* ]] || fail "usage missing from stderr"
 bash -n "$src" || fail "bash -n failed"
 
+# The public self-host docs name the canonical installer entry point.
+docs="$root/../../docs/self-host.md"
+grep -q 'https://raw.githubusercontent.com/evangel2022/rabbitbots/main/infra/compose/install-images.sh' "$docs" ||
+  fail "self-host.md does not point at the canonical installer"
+
 tmp="$(mktemp -d "${TMPDIR:-/tmp}/install-images-smoke.XXXXXX")"
 cleanup_tmp() { rm -rf "$tmp"; }
 trap cleanup_tmp EXIT
@@ -108,6 +113,9 @@ log="${STUB_CURL_LOG:?}"
 if [[ " $* " == *" --help "* ]]; then
   echo "--retry-all-errors"
   exit 0
+fi
+if [[ "${STUB_CURL_FAIL:-}" == "1" ]]; then
+  exit 22
 fi
 out=""
 prev=""
@@ -250,6 +258,20 @@ set -e
 has_compose_pull "$tmp/default" || fail "default install should run compose pull"
 grep -q 'VERB=up' "$tmp/default/docker.log" || fail "default install should run compose up"
 
+# A failed Compose download must stop the install and name the missing file.
+setup_work "$tmp/download-fail"
+rm -- "$tmp/download-fail/cwd/docker-compose.images.yml"
+set +e
+export STUB_CURL_FAIL=1
+download_fail_out="$(run_install "$tmp/download-fail" 2>&1)"
+download_fail_code=$?
+unset STUB_CURL_FAIL
+set -e
+[[ "$download_fail_code" -ne 0 ]] || fail "a failed Compose download should fail the install"
+[[ "$download_fail_out" == *"could not download docker-compose.images.yml"* ]] ||
+  fail "failed download should name the Compose file: $download_fail_out"
+has_compose_pull "$tmp/download-fail" && fail "a failed download must not run compose pull"
+
 # A setting the Compose file does not name is reported instead of silently dropped.
 setup_work "$tmp/unpassed"
 printf '  TELEGRAM_BOT_TOKEN:\n  POSTGRES_PASSWORD: x\n' > "$tmp/unpassed/cwd/docker-compose.images.yml"
@@ -281,39 +303,39 @@ download_ref() {
     [[ -z "$image_tag" ]] || export RAKAZO_IMAGE_TAG="$image_tag"
     run_install "$tmp/$name" "$@" >/dev/null 2>&1
   ) || fail "$name install failed"
-  grep -F 'docker-compose.images.yml' "$tmp/$name/curl.log" | grep -oE 'rakazo/[^/]+/infra/compose' | sort -u
+  grep -F 'docker-compose.images.yml' "$tmp/$name/curl.log" | grep -oE 'rabbitbots/[^/]+/infra/compose' | sort -u
 }
 ref="$(download_ref untagged "")"
-[[ "$ref" == "rakazo/main/infra/compose" ]] || fail "no pin should use main, got: $ref"
+[[ "$ref" == "rabbitbots/main/infra/compose" ]] || fail "no pin should use main, got: $ref"
 ref="$(download_ref shell-pin v0.8.0)"
-[[ "$ref" == "rakazo/v0.8.0/infra/compose" ]] || fail "shell pin should use its tag, got: $ref"
+[[ "$ref" == "rabbitbots/v0.8.0/infra/compose" ]] || fail "shell pin should use its tag, got: $ref"
 ref="$(download_ref shell-edge edge)"
-[[ "$ref" == "rakazo/main/infra/compose" ]] || fail "edge should use main, got: $ref"
+[[ "$ref" == "rabbitbots/main/infra/compose" ]] || fail "edge should use main, got: $ref"
 ref="$(download_ref shell-custom v0.8.0-custom)"
-[[ "$ref" == "rakazo/main/infra/compose" ]] || fail "a tag that is not a release should use main, got: $ref"
+[[ "$ref" == "rabbitbots/main/infra/compose" ]] || fail "a tag that is not a release should use main, got: $ref"
 
 setup_work "$tmp/env-pin"
 printf 'RAKAZO_IMAGE_TAG=edge\nexport RAKAZO_IMAGE_TAG="v0.7.0" # pinned\r\n' >> "$tmp/env-pin/cwd/.env"
 run_install "$tmp/env-pin" >/dev/null 2>&1 || fail "env-pin install failed"
-grep -qF 'rakazo/v0.7.0/infra/compose/docker-compose.images.yml' "$tmp/env-pin/curl.log" ||
+grep -qF 'rabbitbots/v0.7.0/infra/compose/docker-compose.images.yml' "$tmp/env-pin/curl.log" ||
   fail ".env pin should use its tag: $(cat "$tmp/env-pin/curl.log")"
 
 setup_work "$tmp/shell-wins"
 printf 'RAKAZO_IMAGE_TAG=v0.7.0\n' >> "$tmp/shell-wins/cwd/.env"
 (export RAKAZO_IMAGE_TAG=v0.8.0; run_install "$tmp/shell-wins" >/dev/null 2>&1) || fail "shell-wins install failed"
-grep -qF 'rakazo/v0.8.0/infra/compose/docker-compose.images.yml' "$tmp/shell-wins/curl.log" ||
+grep -qF 'rabbitbots/v0.8.0/infra/compose/docker-compose.images.yml' "$tmp/shell-wins/curl.log" ||
   fail "the shell should win over .env, as in Compose: $(cat "$tmp/shell-wins/curl.log")"
 
 setup_work "$tmp/env-spaces"
 printf "RAKAZO_IMAGE_TAG=v0.6.0\\nexport RAKAZO_IMAGE_TAG = 'v0.7.0'\\n" >> "$tmp/env-spaces/cwd/.env"
 run_install "$tmp/env-spaces" >/dev/null 2>&1 || fail "env-spaces install failed"
-grep -qF 'rakazo/v0.7.0/infra/compose/docker-compose.images.yml' "$tmp/env-spaces/curl.log" ||
+grep -qF 'rabbitbots/v0.7.0/infra/compose/docker-compose.images.yml' "$tmp/env-spaces/curl.log" ||
   fail ".env pin with spaces should use its tag: $(cat "$tmp/env-spaces/curl.log")"
 
 setup_work "$tmp/shell-empty"
 printf 'RAKAZO_IMAGE_TAG=v0.7.0\n' >> "$tmp/shell-empty/cwd/.env"
 (export RAKAZO_IMAGE_TAG=; run_install "$tmp/shell-empty" >/dev/null 2>&1) || fail "shell-empty install failed"
-grep -qF 'rakazo/main/infra/compose/docker-compose.images.yml' "$tmp/shell-empty/curl.log" ||
+grep -qF 'rabbitbots/main/infra/compose/docker-compose.images.yml' "$tmp/shell-empty/curl.log" ||
   fail "an empty shell value should win over .env, as in Compose: $(cat "$tmp/shell-empty/curl.log")"
 
 setup_work "$tmp/mirror"
