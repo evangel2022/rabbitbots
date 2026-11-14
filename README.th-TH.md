@@ -1,6 +1,7 @@
 # RabbitBots
 
-[![GitHub stars](https://img.shields.io/github/stars/elie222/rakazo?labelColor=black&style=for-the-badge&color=2563EB)](https://github.com/elie222/rakazo/stargazers)
+[![GitHub stars](https://img.shields.io/github/stars/evangel2022/rabbitbots?labelColor=black&style=for-the-badge&color=2563EB)](https://github.com/evangel2022/rabbitbots/stargazers)
+[![CI](https://github.com/evangel2022/rabbitbots/actions/workflows/ci.yml/badge.svg?branch=main)](https://github.com/evangel2022/rabbitbots/actions/workflows/ci.yml)
 [![Discord](https://img.shields.io/badge/Discord-Join%20the%20community-5865F2?labelColor=black&style=for-the-badge&logo=discord&logoColor=white)](https://discord.gg/RWwKa2Sn7h)
 [![Download on the App Store](https://img.shields.io/badge/App%20Store-Download%20for%20iPhone-black?labelColor=black&style=for-the-badge&logo=apple&logoColor=white)](https://apps.apple.com/app/rakazo/id6801531099)
 [![Get Android on Google Play](https://img.shields.io/badge/Google%20Play-Get%20the%20app-black?labelColor=black&style=for-the-badge&logo=googleplay&logoColor=white)](https://play.google.com/store/apps/details?id=com.rakazo.app)
@@ -18,8 +19,8 @@ RabbitBots เป็น workspace แบบ self-host สำหรับบร�
 ต้องมี Docker Engine, Compose plugin, curl และ OpenSSL ไม่ต้อง clone หรือติดตั้ง Node
 
 ```bash
-mkdir -p rakazo && cd rakazo &&
-curl -fsSLO https://raw.githubusercontent.com/elie222/rakazo/main/infra/compose/install-images.sh &&
+mkdir -p rabbitbots && cd rabbitbots &&
+curl -fsSLO https://raw.githubusercontent.com/evangel2022/rabbitbots/main/infra/compose/install-images.sh &&
 bash install-images.sh
 ```
 

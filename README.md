@@ -8,9 +8,9 @@ Open-source AI employees that meet, decide, delegate, use real computers, and de
 
 [English](./README.md) | [简体中文](./README.zh-CN.md) | [日本語](./README.ja.md) | [ไทย](./README.th-TH.md)
 
-[![GitHub stars](https://img.shields.io/github/stars/elie222/rakazo?labelColor=black&style=for-the-badge&color=2563EB)](https://github.com/elie222/rakazo/stargazers)
+[![GitHub stars](https://img.shields.io/github/stars/evangel2022/rabbitbots?labelColor=black&style=for-the-badge&color=2563EB)](https://github.com/evangel2022/rabbitbots/stargazers)
 [![Discord](https://img.shields.io/badge/Discord-Join%20the%20community-5865F2?labelColor=black&style=for-the-badge&logo=discord&logoColor=white)](https://discord.gg/RWwKa2Sn7h)
-[![CI](https://github.com/elie222/rakazo/actions/workflows/ci.yml/badge.svg?branch=main)](https://github.com/elie222/rakazo/actions/workflows/ci.yml)
+[![CI](https://github.com/evangel2022/rabbitbots/actions/workflows/ci.yml/badge.svg?branch=main)](https://github.com/evangel2022/rabbitbots/actions/workflows/ci.yml)
 [![License: Apache 2.0](https://img.shields.io/badge/License-Apache%202.0-blue?labelColor=black&style=for-the-badge)](./LICENSE)
 [![Download on the App Store](https://img.shields.io/badge/App%20Store-Download%20for%20iPhone-black?labelColor=black&style=for-the-badge&logo=apple&logoColor=white)](https://apps.apple.com/app/rakazo/id6801531099)
 [![Get Android on Google Play](https://img.shields.io/badge/Google%20Play-Get%20the%20app-black?labelColor=black&style=for-the-badge&logo=googleplay&logoColor=white)](https://play.google.com/store/apps/details?id=com.rakazo.app)
@@ -24,8 +24,7 @@ tasks, delegation, execution attempts, evidence and CEO acceptance.
 Unlike a chatbot, RabbitBots keeps the organization around the work: who decided, who owns the task,
 which employee delegated it, what actually ran, what failed, and whether the CEO accepted the result.
 
-> The source and install links use the existing `rakazo` repository and hosted domains while the
-> public RabbitBots brand is being migrated. They are real, working destinations.
+> RabbitBots source is developed publicly at https://github.com/evangel2022/rabbitbots. The hosted service, `rakazo.com`, `app.rakazo.com`, existing app store listings, internal `@rakazo/*` package names and `RAKAZO_*` settings remain in place while the brand migration continues.
 
 ## Three core capabilities
 
@@ -104,7 +103,7 @@ This is the fastest path for a server or a local Docker host. It needs Docker En
 
 ```bash
 mkdir -p rabbitbots && cd rabbitbots &&
-curl -fsSLO https://raw.githubusercontent.com/elie222/rakazo/main/infra/compose/install-images.sh &&
+curl -fsSLO https://raw.githubusercontent.com/evangel2022/rabbitbots/main/infra/compose/install-images.sh &&
 bash install-images.sh
 ```
 
@@ -126,8 +125,8 @@ Requirements:
 - Windows: use WSL2 Ubuntu and run the commands in the Linux shell. Docker Desktop must have WSL integration enabled. Native Windows is not a tested development path.
 
 ```bash
-git clone https://github.com/elie222/rakazo.git
-cd rakazo
+git clone https://github.com/evangel2022/rabbitbots.git
+cd rabbitbots
 cp .env.example .env
 ```
 
@@ -272,8 +271,8 @@ The source checkout needs **Node.js 24.15.0 or newer** in the 24.x line, or Node
 **pnpm 12** and **Docker**. Node.js 25.x is not supported.
 
 ```bash
-git clone https://github.com/elie222/rakazo.git
-cd rakazo
+git clone https://github.com/evangel2022/rabbitbots.git
+cd rabbitbots
 cp .env.example .env
 ```
 
@@ -321,7 +320,7 @@ Report vulnerabilities privately through [SECURITY.md](./SECURITY.md), not a pub
 - [Contributing guide](./CONTRIBUTING.md)
 - [Security policy](./SECURITY.md)
 - [Changelog](./CHANGELOG.md)
-- [Open issues and roadmap discussion](https://github.com/elie222/rakazo/issues)
+- [Open issues and roadmap discussion](https://github.com/evangel2022/rabbitbots/issues)
 - [Discord community](https://discord.gg/RWwKa2Sn7h)
 
 Issue and pull-request templates live under [.github](./.github). Pull requests should describe the problem, the behavior change, how it was tested, and any migration or risk.

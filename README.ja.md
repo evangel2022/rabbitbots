@@ -2,7 +2,8 @@
 
 [English](./README.md) | [简体中文](./README.zh-CN.md) | [日本語](./README.ja.md)
 
-[![GitHub stars](https://img.shields.io/github/stars/elie222/rakazo?labelColor=black&style=for-the-badge&color=2563EB)](https://github.com/elie222/rakazo/stargazers)
+[![GitHub stars](https://img.shields.io/github/stars/evangel2022/rabbitbots?labelColor=black&style=for-the-badge&color=2563EB)](https://github.com/evangel2022/rabbitbots/stargazers)
+[![CI](https://github.com/evangel2022/rabbitbots/actions/workflows/ci.yml/badge.svg?branch=main)](https://github.com/evangel2022/rabbitbots/actions/workflows/ci.yml)
 [![Discord コミュニティに参加](https://img.shields.io/badge/Discord-Join%20the%20community-5865F2?labelColor=black&style=for-the-badge&logo=discord&logoColor=white)](https://discord.gg/RWwKa2Sn7h)
 [![App Store で iPhone 版をダウンロード](https://img.shields.io/badge/App%20Store-Download%20for%20iPhone-black?labelColor=black&style=for-the-badge&logo=apple&logoColor=white)](https://apps.apple.com/app/rakazo/id6801531099)
 [![Google Play で Android 版をダウンロード](https://img.shields.io/badge/Google%20Play-Get%20the%20app-black?labelColor=black&style=for-the-badge&logo=googleplay&logoColor=white)](https://play.google.com/store/apps/details?id=com.rakazo.app)
@@ -98,8 +99,8 @@ Web、デスクトップ、iPhone、Android が同じサーバーにつながり
 Docker Engine、Compose プラグイン、curl、OpenSSL が必要です。リポジトリのクローンや Node のインストールは不要です。
 
 ```bash
-mkdir -p rakazo && cd rakazo &&
-curl -fsSLO https://raw.githubusercontent.com/elie222/rakazo/main/infra/compose/install-images.sh &&
+mkdir -p rabbitbots && cd rabbitbots &&
+curl -fsSLO https://raw.githubusercontent.com/evangel2022/rabbitbots/main/infra/compose/install-images.sh &&
 bash install-images.sh
 ```
 
@@ -143,8 +144,8 @@ Node.js 24.x 系の 24.15.0 以降、または Node.js 26 以降と、
 pnpm 12、Docker が必要です。Node.js 25.x はサポートしていません。
 
 ```bash
-git clone https://github.com/elie222/rakazo.git
-cd rakazo
+git clone https://github.com/evangel2022/rabbitbots.git
+cd rabbitbots
 cp .env.example .env
 ```
 
