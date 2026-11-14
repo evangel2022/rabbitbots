@@ -7,6 +7,7 @@ import { builtinAgentTools } from "./builtin-tools.js";
 import type * as ComputerLifecycleModule from "./computer-lifecycle.js";
 import { createRunExecutor } from "./executor.js";
 import { EncryptedSecretStore } from "./secrets.js";
+import { createFakeToolInvocationModel } from "./test-support/tool-invocation-model.js";
 
 const COMPUTER: ComputerRef = {
   id: "sandbox-1",
@@ -30,6 +31,8 @@ type ExecuteTool = (
 
 /** Every database call, by model and method, so a test can check what was written anywhere. */
 function recordingPrisma(models: Record<string, Record<string, unknown>>, calls: unknown[]) {
+  // One shared model per Prisma stub: create and later lifecycle calls must see the same rows.
+  const toolInvocation = createFakeToolInvocationModel();
   const fallback: Record<string, (...args: unknown[]) => unknown> = {
     findMany: async () => [],
     findFirst: async () => null,
@@ -45,6 +48,7 @@ function recordingPrisma(models: Record<string, Record<string, unknown>>, calls:
           return async (fn: (tx: unknown) => unknown) => fn(prisma);
         }
         // The member's settings lock always finds the membership row.
+        if (model === "toolInvocation") return toolInvocation;
         if (model === "$queryRaw") return async () => [{ locked: 1 }];
         const methods = models[model] ?? {};
         return new Proxy(methods, {

@@ -7,6 +7,7 @@ import type * as ComputerLifecycleModule from "./computer-lifecycle.js";
 import { createRunExecutor } from "./executor.js";
 import type * as RunNotificationsModule from "./run-notifications.js";
 import { EncryptedSecretStore } from "./secrets.js";
+import { createFakeToolInvocationModel } from "./test-support/tool-invocation-model.js";
 
 const COMPUTER: ComputerRef = {
   id: "sandbox-1",
@@ -47,6 +48,8 @@ const requestCode = (extra: Record<string, unknown> = {}) => ({
 });
 
 function recordingPrisma(models: Record<string, Record<string, unknown>>, calls: unknown[]) {
+  // One shared model per Prisma stub: create and later lifecycle calls must see the same rows.
+  const toolInvocation = createFakeToolInvocationModel();
   const fallback: Record<string, (...args: unknown[]) => unknown> = {
     findMany: async () => [],
     findFirst: async () => null,
@@ -61,6 +64,7 @@ function recordingPrisma(models: Record<string, Record<string, unknown>>, calls:
         if (model === "$transaction") {
           return async (fn: (tx: unknown) => unknown) => fn(prisma);
         }
+        if (model === "toolInvocation") return toolInvocation;
         if (model === "$queryRaw") return async () => [{ locked: 1 }];
         const methods =
           models[model] ??

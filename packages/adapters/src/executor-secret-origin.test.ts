@@ -5,6 +5,7 @@ import type * as ComputerLifecycleModule from "./computer-lifecycle.js";
 import { createRunExecutor } from "./executor.js";
 import { prepareRequestSecretArguments } from "./pi-runtime-tools.js";
 import { EncryptedSecretStore } from "./secrets.js";
+import { createFakeToolInvocationModel } from "./test-support/tool-invocation-model.js";
 
 const COMPUTER: ComputerRef = {
   id: "sandbox-1",
@@ -37,6 +38,8 @@ const PAGE_URL = `https://${CANARIES[0]}:${CANARIES[1]}@www.example.test/${CANAR
 
 /** Every database call, by model and method, so a test can check what was written anywhere. */
 function recordingPrisma(models: Record<string, Record<string, unknown>>, calls: unknown[]) {
+  // One shared model per Prisma stub: create and later lifecycle calls must see the same rows.
+  const toolInvocation = createFakeToolInvocationModel();
   const fallback: Record<string, (...args: unknown[]) => unknown> = {
     findMany: async () => [],
     findFirst: async () => null,
@@ -51,6 +54,7 @@ function recordingPrisma(models: Record<string, Record<string, unknown>>, calls:
         if (model === "$transaction") {
           return async (fn: (tx: unknown) => unknown) => fn(prisma);
         }
+        if (model === "toolInvocation") return toolInvocation;
         if (model === "$queryRaw") return async () => [];
         const methods = models[model] ?? {};
         return new Proxy(methods, {

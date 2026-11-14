@@ -3,6 +3,7 @@ import { createServer } from "node:http";
 import { setTimeout as delay } from "node:timers/promises";
 import { afterEach, beforeEach, describe, expect, it, vi } from "vitest";
 import type * as ComputerLifecycleModule from "./computer-lifecycle.js";
+import { createFakeToolInvocationModel } from "./test-support/tool-invocation-model.js";
 import { isLoopGuardStopText, MAX_CONSECUTIVE_OVER_LIMIT_ACTION_CALLS } from "./tool-loop.js";
 
 const provisionComputer = vi.hoisted(() => vi.fn());
@@ -280,11 +281,16 @@ async function runLoop(
     });
   const emptyMethod = (key: string | symbol) =>
     empty[key as keyof typeof empty] ?? (async () => ({}));
+  const toolInvocation = createFakeToolInvocationModel();
   const proxied: object = new Proxy(prisma, {
     get: (target, key) =>
-      typeof key === "string" && key.startsWith("$") && !(key in target)
-        ? async () => []
-        : table(key in target ? target[key as keyof typeof target] : empty),
+      key === "toolInvocation"
+        ? toolInvocation
+        : key === "$contentEncryption"
+          ? undefined
+          : typeof key === "string" && key.startsWith("$") && !(key in target)
+            ? async () => []
+            : table(key in target ? target[key as keyof typeof target] : empty),
   });
   const act = vi.fn(async (_computer: unknown, request: { actions: unknown[] }) => ({
     completed: request.actions.length,

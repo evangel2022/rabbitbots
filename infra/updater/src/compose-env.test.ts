@@ -69,6 +69,12 @@ const NOT_PASSED: Record<string, string> = {
   KUBERNETES_SANDBOX_POD_LABELS: KUBERNETES_SANDBOX,
   KUBERNETES_SANDBOX_READY_TIMEOUT_MS: KUBERNETES_SANDBOX,
   KUBERNETES_SANDBOX_RUNTIME_CLASS_NAME: KUBERNETES_SANDBOX,
+  TOOL_INVOCATION_COUNTER: "crash-recovery test fixture only",
+  TOOL_INVOCATION_CRASH_STAGE: "crash-recovery test fixture only",
+  TOOL_INVOCATION_ID: "crash-recovery test fixture only",
+  TOOL_INVOCATION_RUN_ID: "crash-recovery test fixture only",
+  TOOL_INVOCATION_SPACE_ID: "crash-recovery test fixture only",
+  TOOL_INVOCATION_WORKER_ID: "crash-recovery test fixture only",
 };
 
 /**

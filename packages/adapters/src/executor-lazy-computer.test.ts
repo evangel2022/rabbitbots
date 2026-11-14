@@ -6,6 +6,7 @@ import { afterEach, beforeEach, describe, expect, it, vi } from "vitest";
 import type * as ComputerLifecycleModule from "./computer-lifecycle.js";
 import { createRunExecutor } from "./executor.js";
 import * as runMessages from "./run-messages.js";
+import { createFakeToolInvocationModel } from "./test-support/tool-invocation-model.js";
 
 const sink = createTestSink();
 
@@ -830,7 +831,9 @@ function withEmptyModels<T extends object>(prisma: T): T {
     count: async () => 0,
     updateMany: async () => ({ count: 0 }),
   };
+  const toolInvocation = createFakeToolInvocationModel();
   return new Proxy(prisma, {
-    get: (target, key) => (key in target ? target[key as keyof T] : empty),
+    get: (target, key) =>
+      key === "toolInvocation" ? toolInvocation : key in target ? target[key as keyof T] : empty,
   });
 }
