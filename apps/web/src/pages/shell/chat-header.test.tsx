@@ -94,6 +94,12 @@ function renderHeader({ inGroup = false } = {}) {
 
 const gift = () => container.querySelector<HTMLButtonElement>('[aria-label="Invite a friend"]');
 
+it("does not render a demo entry in the chat header", () => {
+  renderHeader();
+  expect(container.querySelector('[data-testid="investor-demo-header"]')).toBeNull();
+  expect(container.textContent).not.toMatch(/investor demo/i);
+});
+
 it("clears the macOS traffic lights beside Open navigation on a narrow desktop window", () => {
   window.rakazoDesktop = { platform: "darwin" } as never;
   renderHeader();

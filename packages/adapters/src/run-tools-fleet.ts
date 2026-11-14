@@ -24,6 +24,7 @@ import {
   updateChildBot,
   updateFleetGroup,
   updateOwnBotFromTool,
+  updateOwnBotIdentityFromTool,
 } from "./fleet-tools.js";
 import {
   listDefaultVoices,
@@ -39,7 +40,12 @@ import { mayOpenModelStream } from "./run-lifecycle.js";
 import { publishMessage } from "./run-messages.js";
 import { fleetPrepareDeps } from "./run-model.js";
 import type { ToolCall, ToolHandlers } from "./run-tool-gate.js";
-import { argumentGiven, ignoredFieldsNote } from "./update-bot-patch.js";
+import {
+  argumentGiven,
+  ignoredFieldsNote,
+  OWN_BOT_IDENTITY_KEY,
+  ownBotIdentityChange,
+} from "./update-bot-patch.js";
 
 async function archiveBot(ctx: RunContext, call: ToolCall) {
   const { deps, run, bot, thread, context } = ctx;
@@ -255,6 +261,15 @@ export const fleetTools: ToolHandlers = {
   async update_bot(ctx, call) {
     const { deps, run, bot, thread, context } = ctx;
     const { args } = call;
+    const identity = ownBotIdentityChange(args[OWN_BOT_IDENTITY_KEY]);
+    if (identity) {
+      const effectId = call.applied?.effect.id;
+      if (call.nextApprovedTool !== call.name || !call.claimedEffect || !effectId)
+        return call.finish({ error: "This bot identity change needs the owner's approval." });
+      return call.finish(
+        await updateOwnBotIdentityFromTool(deps, run, thread.id, bot, identity, effectId),
+      );
+    }
     if (argumentGiven(args.bot_id)) {
       return call.finish(
         await updateChildBot({ ...deps, runSecrets: ctx.secrets }, ctx.fleetRun, args),

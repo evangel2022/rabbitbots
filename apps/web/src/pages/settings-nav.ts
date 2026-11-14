@@ -6,6 +6,7 @@ import {
   Cpu,
   CreditCard,
   Gauge,
+  Globe2,
   KeyRound,
   MessageCircle,
   Monitor,
@@ -32,6 +33,7 @@ export function useSettingsNavItems(available: {
   computer: boolean;
   billing: boolean;
   updates: boolean;
+  network: boolean;
 }): SettingsNavItem[] {
   const { t } = useLingui();
   return [
@@ -94,6 +96,16 @@ export function useSettingsNavItems(available: {
         ]
       : []),
     { id: "usage", label: t`Usage`, icon: Gauge },
+    ...(available.network
+      ? [
+          {
+            id: "network" as const,
+            label: t`Network & Proxy`,
+            icon: Globe2,
+            description: t`Server-side proxy for model and web traffic.`,
+          },
+        ]
+      : []),
     ...(available.billing ? [{ id: "billing" as const, label: t`Billing`, icon: CreditCard }] : []),
     { id: "organization", label: t`Organization`, icon: Building2 },
     ...(available.updates

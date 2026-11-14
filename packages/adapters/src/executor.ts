@@ -222,8 +222,10 @@ import {
 } from "./thread-artifacts.js";
 import { loadAgentTicketContext } from "./ticket-context.js";
 import { appendToolCompletionAudit, toolCompletionOutcome } from "./tool-completion-audit.js";
+import { recoverPendingToolInvocations } from "./tool-invocations.js";
 import { toolResultFingerprint } from "./tool-loop.js";
-import { restoreTurnCheckpoint } from "./turn-checkpoint.js";
+import { restoreTurnCheckpoint, resumableInvocationIdsOf } from "./turn-checkpoint.js";
+import { resolveUserProxyRoute } from "./user-outbound-proxy.js";
 import { createWebProvider } from "./web-provider-factory.js";
 
 /** Same reach as the MCP connector: usable servers assigned to the bot or shared with every bot. */
@@ -501,6 +503,14 @@ export function createRunExecutor(executorDeps: ExecutorDeps) {
             error instanceof Error ? error : new Error("Unsupported turn checkpoint");
         }
         const storedTurnCheckpoint = Boolean(turnCheckpoint);
+        if (deps.prisma.toolInvocation) {
+          await recoverPendingToolInvocations(deps.prisma, {
+            runId,
+            checkpointInvocationIds: resumableInvocationIdsOf(turnCheckpoint),
+          }).catch((error) => {
+            getLogger().error("recover pending tool invocations", error);
+          });
+        }
         const resolveCheckpointModel = (
           provider: string,
           id: string,
@@ -690,6 +700,8 @@ export function createRunExecutor(executorDeps: ExecutorDeps) {
           userId: run.userId,
           botId: bot.id,
           runId,
+          resolveEgressProxy: () =>
+            resolveUserProxyRoute(deps.prisma, deps.secretStore, run.userId),
           screenLeaseId: screenLeaseIdForRun(computerLease, runId, fence),
           signal: runAbortController.signal,
           ...connectedContext(connectedPlugins),
@@ -1411,6 +1423,9 @@ export function createRunExecutor(executorDeps: ExecutorDeps) {
             restoredPending: undefined,
             consumedIds: new Set(),
             pendingTurnCheckpoints: new Map(),
+            pendingToolInvocationIds: new Map(),
+            pendingToolInvocationMeta: new Map(),
+            invocationSequence: 0,
             storedTurnCheckpoint,
           },
           screen: { lastFrameId: undefined, unchangedVisualStreak: { count: 0 } },
@@ -1926,8 +1941,11 @@ export function createRunExecutor(executorDeps: ExecutorDeps) {
               onToolCompleted: (completion) => {
                 if (effects.restoredPending?.executionId === completion.executionId)
                   effects.restoredPending = undefined;
-                if (!completion.paused)
+                if (!completion.paused) {
                   effects.pendingTurnCheckpoints.delete(completion.executionId);
+                  effects.pendingToolInvocationIds.delete(completion.executionId);
+                  effects.pendingToolInvocationMeta.delete(completion.executionId);
+                }
                 const outcome = toolCompletionOutcome(completion);
                 if (outcome) state.reply.toolOutcomes.set(completion.executionId, outcome);
                 const audited = appendToolCompletionAudit(

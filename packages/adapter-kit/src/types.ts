@@ -8,6 +8,13 @@ import type {
   SandboxKind,
 } from "@rakazo/contracts";
 
+export type EgressProxyRoute =
+  | { mode: "direct" }
+  | { mode: "proxy"; url: string; bypass: string[] };
+
+/** Resolve the authenticated user's effective proxy for this request. */
+export type EgressProxyResolver = () => Promise<EgressProxyRoute>;
+
 export interface AdapterContext {
   operationId: string;
   traceId: string;
@@ -22,6 +29,8 @@ export interface AdapterContext {
   /** When releasing a screen after cancel, also stop orphaned browser work on that screen. */
   cancelRunWork?: boolean;
   signal: AbortSignal;
+  /** Per-user egress choice for server-side tools; absent keeps the deployment policy. */
+  resolveEgressProxy?: EgressProxyResolver;
   /** Connected external accounts available to this run, including their owning connector. */
   connectedConnections?: ConnectedConnector[];
   /** @deprecated Prefer connectedConnections so providers with the same app slug cannot collide. */

@@ -1,7 +1,7 @@
 import { mkdtempSync } from "node:fs";
 import { tmpdir } from "node:os";
 import path from "node:path";
-import type { RunActivityRow } from "@rakazo/contracts";
+import type { RunActivityRow, RunTrigger } from "@rakazo/contracts";
 import type { PrismaClient } from "@rakazo/db";
 import { createThreadMessage } from "@rakazo/db";
 import { afterAll, beforeAll, describe, expect, it } from "vitest";
@@ -77,6 +77,29 @@ describeRunsList("runs.list activity tracker", () => {
       true,
     );
     expect(recent.runs.some((run) => run.botName === "Beta")).toBe(false);
+  });
+
+  it("returns the runtime workflow triggers without validation failure", async () => {
+    const cookie = await signup(app, `runs-workflow-${stamp}@rakazo.test`, "Workflow User");
+    const triggers: RunTrigger[] = ["workforce_task", "meeting_action", "delegation_continuation"];
+    for (const [index, trigger] of triggers.entries()) {
+      const bot = await rpc<{ id: string }>(app, cookie, "bots/create", {
+        name: `Workflow ${index}`,
+        title: "",
+        description: "",
+        instructions: "",
+        notifyOnFinish: true,
+      });
+      await seedRun(prisma, bot.id, "completed", `${trigger} run`, null, undefined, trigger);
+    }
+    const active = await rpc<{ runs: RunActivityRow[] }>(app, cookie, "runs/list", {
+      filter: "active",
+    });
+    expect(active.runs).toEqual([]);
+    const recent = await rpc<{ runs: RunActivityRow[] }>(app, cookie, "runs/list", {
+      filter: "recent",
+    });
+    expect(recent.runs.map((run) => run.trigger).sort()).toEqual([...triggers].sort());
   });
 
   it("never returns runs from another workspace", async () => {
@@ -292,6 +315,7 @@ async function seedRun(
   prompt: string,
   completedAt?: Date | null,
   threadId?: string,
+  trigger: RunTrigger = "user",
 ) {
   const thread = await prisma.thread.findUniqueOrThrow({
     where: threadId ? { id: threadId } : { botId },
@@ -314,7 +338,7 @@ async function seedRun(
       threadId: thread.id,
       taskId: task.id,
       status,
-      trigger: "user",
+      trigger,
       completedAt: status === "completed" ? (completedAt ?? new Date()) : null,
     },
   });

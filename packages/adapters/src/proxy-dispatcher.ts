@@ -15,7 +15,32 @@ export function createCheckedProxyDispatcher(
   connectTimeout?: number,
 ): Dispatcher {
   const { env } = process;
-  const proxies = [env.http_proxy ?? env.HTTP_PROXY, env.https_proxy ?? env.HTTPS_PROXY];
+  return createCheckedProxyDispatcherFor(
+    resolve,
+    validate,
+    {
+      httpProxy: env.http_proxy ?? env.HTTP_PROXY,
+      httpsProxy: env.https_proxy ?? env.HTTPS_PROXY,
+      noProxy: env.no_proxy ?? env.NO_PROXY,
+    },
+    connectTimeout,
+  );
+}
+
+/** An immutable proxy route for one user's model requests. */
+export type ExplicitProxyRoute = {
+  httpProxy?: string;
+  httpsProxy?: string;
+  noProxy?: string;
+};
+
+export function createCheckedProxyDispatcherFor(
+  resolve: ResolveHostname,
+  validate: (addresses: ResolvedAddress[], hostname: string) => void,
+  route: ExplicitProxyRoute,
+  connectTimeout?: number,
+): Dispatcher {
+  const proxies = [route.httpProxy, route.httpsProxy];
   for (const proxy of proxies) {
     if (proxy && !/^https?:\/\//i.test(proxy)) throw new Error("Only HTTP proxies are supported");
   }
@@ -27,6 +52,9 @@ export function createCheckedProxyDispatcher(
   return new EnvHttpProxyAgent({
     connect,
     ...(connectTimeout === undefined ? {} : { connectTimeout }),
+    httpProxy: route.httpProxy,
+    httpsProxy: route.httpsProxy,
+    noProxy: route.noProxy,
     proxyTunnel: true,
     clientFactory: (origin, options) => {
       const pool = new Pool(origin, options);

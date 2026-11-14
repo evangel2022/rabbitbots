@@ -31,6 +31,7 @@ import { useId } from "react";
 import { BotEmailAddressField } from "../../components/BotEmailAddressField";
 import { authClient } from "../../lib/auth";
 import { useCopyText } from "../../lib/copy-text";
+import { getActiveUiLocale } from "../../lib/i18n";
 import type { RoutineWatchDraft } from "../../lib/routine-draft";
 
 export function WatchTriggerCard({
@@ -51,8 +52,8 @@ export function WatchTriggerCard({
     : state.outcome === "failed"
       ? t`Check failed: ${state.detail ?? ""}`
       : state.outcome === "changed"
-        ? t`Last check ${new Date(state.checkedAt).toLocaleString()}: changed`
-        : t`Last check ${new Date(state.checkedAt).toLocaleString()}: no changes`;
+        ? t`Last check ${new Date(state.checkedAt).toLocaleString(getActiveUiLocale())}: changed`
+        : t`Last check ${new Date(state.checkedAt).toLocaleString(getActiveUiLocale())}: no changes`;
   return (
     <div className="rounded-xl border border-border p-3" data-testid="routine-watch-card">
       <div className="flex items-center gap-2.5 px-0.5">

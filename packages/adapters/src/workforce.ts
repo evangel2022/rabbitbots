@@ -17,7 +17,7 @@ export async function getWorkforceOverview(
   spaceId: string,
   now = new Date(),
 ): Promise<WorkforceOverview> {
-  const [bots, participants, actions, generic] = await Promise.all([
+  const [bots, participants, actions, taskRows] = await Promise.all([
     prisma.bot.findMany({
       where: { spaceId, archivedAt: null },
       orderBy: { name: "asc" },
@@ -59,6 +59,7 @@ export async function getWorkforceOverview(
       },
     }),
   ]);
+
   const roleByBot = new Map<string, string>();
   for (const participant of participants) {
     if (!roleByBot.has(participant.botId)) roleByBot.set(participant.botId, participant.role);
@@ -67,7 +68,7 @@ export async function getWorkforceOverview(
     ...new Set(
       [
         ...actions.map((action) => action.assigneeUserId),
-        ...generic.map((task) => task.assigneeUserId),
+        ...taskRows.map((task) => task.assigneeUserId),
       ].filter((id): id is string => Boolean(id)),
     ),
   ];
@@ -79,8 +80,80 @@ export async function getWorkforceOverview(
     : [];
   const userNames = new Map(users.map((user) => [user.id, user.name]));
 
+  const runIds = [
+    ...new Set(
+      [
+        ...actions.flatMap((action) => action.executionAttempts.map((attempt) => attempt.runId)),
+        ...taskRows.flatMap((task) => [
+          task.botRunId,
+          task.continuationRunId,
+          ...task.attempts.map((attempt) => attempt.botRunId),
+        ]),
+      ].filter((id): id is string => Boolean(id)),
+    ),
+  ];
+  const runs = runIds.length
+    ? await prisma.run.findMany({
+        where: { id: { in: runIds } },
+        select: { id: true, status: true, trigger: true },
+      })
+    : [];
+  const runById = new Map(runs.map((run) => [run.id, run]));
+  const runStatus = (runId: string | null) => (runId ? (runById.get(runId)?.status ?? null) : null);
+  const runTrigger = (runId: string | null) =>
+    runId ? (runById.get(runId)?.trigger ?? null) : null;
+
+  const actionIds = new Set(actions.map((action) => action.id));
+  const parentByActionId = new Map(
+    taskRows
+      .filter((task) => task.parentMeetingActionId && actionIds.has(task.parentMeetingActionId))
+      .map((task) => [task.parentMeetingActionId!, task]),
+  );
+  // A task linked to a Meeting Action is the execution side of that action. It must not
+  // become a second list row. Orphaned links remain visible rather than disappearing.
+  const genericRows = taskRows.filter(
+    (task) =>
+      task.source !== "MEETING_DECISION" &&
+      (!task.parentMeetingActionId || !actionIds.has(task.parentMeetingActionId)),
+  );
+
+  const actionAttempts = (action: (typeof actions)[number]) =>
+    action.executionAttempts.map((attempt) => ({
+      id: attempt.id,
+      actionItemId: action.id,
+      attemptNumber: attempt.attemptNumber,
+      taskId: attempt.taskId,
+      botRunId: attempt.runId,
+      status: attempt.status as WorkforceTaskView["attempts"][number]["status"],
+      resultStatus: attempt.resultStatus as WorkforceTaskView["latestResultStatus"],
+      resultSummary: attempt.resultSummary,
+      evidence: Array.isArray(attempt.evidence)
+        ? attempt.evidence.filter((value): value is string => typeof value === "string")
+        : [],
+      error: attempt.error,
+      startedAt: iso(attempt.startedAt),
+      completedAt: iso(attempt.completedAt),
+      createdAt: attempt.createdAt.toISOString(),
+      runStatus: runStatus(attempt.runId),
+      runTrigger: runTrigger(attempt.runId),
+    }));
+
   const meetingTasks: WorkforceTaskView[] = actions.map((action) => {
-    const latestAttempt = action.executionAttempts.at(-1);
+    const parent = parentByActionId.get(action.id);
+    const linked = parent
+      ? workforceTaskView(
+          parent,
+          parent.assigneeUserId ? (userNames.get(parent.assigneeUserId) ?? "Human owner") : null,
+        )
+      : null;
+    const attempts = linked
+      ? linked.attempts.map((attempt) => ({
+          ...attempt,
+          runStatus: runStatus(attempt.botRunId),
+          runTrigger: runTrigger(attempt.botRunId),
+        }))
+      : actionAttempts(action);
+    const latestAttempt = attempts.at(-1);
     return {
       id: action.id,
       source: "MEETING_DECISION" as const,
@@ -101,44 +174,32 @@ export async function getWorkforceOverview(
         (action.decision?.approvalStatus as WorkforceTaskView["approvalStatus"]) ?? null,
       conditionsConfirmedAt: iso(action.decision?.conditionsConfirmedAt),
       executionStatus: action.status as WorkforceTaskView["executionStatus"],
+      linkedExecutionStatus:
+        (linked?.executionStatus as WorkforceTaskView["executionStatus"] | null | undefined) ??
+        null,
       latestResultStatus:
         (latestAttempt?.resultStatus as WorkforceTaskView["latestResultStatus"]) ??
         (action.resultStatus as WorkforceTaskView["latestResultStatus"]),
       latestResultSummary: latestAttempt?.resultSummary ?? action.resultSummary,
       acceptanceStatus: action.acceptanceStatus,
-      blockedReason: action.blockedReason,
-      priority: "NORMAL" as const,
-      dueAt: iso(action.dueAt),
+      blockedReason: linked?.blockedReason ?? action.blockedReason,
+      priority: linked?.priority ?? ("NORMAL" as const),
+      dueAt: linked?.dueAt ?? iso(action.dueAt),
       parentTaskId: null,
       parentMeetingActionId: null,
-      parentRunId: null,
-      delegatorBotId: null,
-      delegationDepth: 0,
-      waitingForChildren: false,
-      waitingSince: null,
-      continuationRunId: null,
-      delegationDeadlineAt: null,
-      delegations: [],
+      linkedWorkforceTaskId: linked?.id ?? null,
+      parentRunId: linked?.parentRunId ?? null,
+      delegatorBotId: linked?.delegatorBotId ?? null,
+      delegationDepth: linked?.delegationDepth ?? 0,
+      waitingForChildren: linked?.waitingForChildren ?? false,
+      waitingSince: linked?.waitingSince ?? null,
+      continuationRunId: linked?.continuationRunId ?? null,
+      delegationDeadlineAt: linked?.delegationDeadlineAt ?? null,
+      delegations: linked?.delegations ?? [],
       createdAt: action.createdAt.toISOString(),
-      startedAt: iso(action.startedAt),
-      completedAt: iso(action.completedAt),
-      attempts: action.executionAttempts.map((attempt) => ({
-        id: attempt.id,
-        actionItemId: action.id,
-        attemptNumber: attempt.attemptNumber,
-        taskId: attempt.taskId,
-        botRunId: attempt.runId,
-        status: attempt.status as "RUNNING" | "COMPLETED" | "FAILED" | "BLOCKED",
-        resultStatus: attempt.resultStatus as WorkforceTaskView["latestResultStatus"],
-        resultSummary: attempt.resultSummary,
-        evidence: Array.isArray(attempt.evidence)
-          ? attempt.evidence.filter((value): value is string => typeof value === "string")
-          : [],
-        error: attempt.error,
-        startedAt: iso(attempt.startedAt),
-        completedAt: iso(attempt.completedAt),
-        createdAt: attempt.createdAt.toISOString(),
-      })),
+      startedAt: linked?.startedAt ?? iso(action.startedAt),
+      completedAt: linked?.completedAt ?? iso(action.completedAt),
+      attempts,
       acceptances: action.acceptances.map((acceptance) => ({
         id: acceptance.id,
         actionItemId: acceptance.actionItemId,
@@ -151,7 +212,7 @@ export async function getWorkforceOverview(
     };
   });
 
-  const genericTasks = generic.map((task) =>
+  const genericTasks = genericRows.map((task) =>
     workforceTaskView(
       task,
       task.assigneeUserId ? (userNames.get(task.assigneeUserId) ?? "Human owner") : null,

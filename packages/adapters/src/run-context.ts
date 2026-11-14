@@ -44,6 +44,7 @@ import { secretPausedToolResult } from "./run-secret.js";
 import type { createRunTrustLoaders } from "./run-trust.js";
 import type { inferScript } from "./scripted-runtime.js";
 import type { LoopGuardStreak } from "./tool-loop.js";
+import type { PendingToolInvocationCheckpoint } from "./turn-checkpoint.js";
 import { restoreTurnCheckpoint, unresolvedTurnCheckpointCalls } from "./turn-checkpoint.js";
 
 export type RunningHelper = Omit<Extract<MessageBlock, { kind: "subagent" }>, "kind">;
@@ -152,6 +153,12 @@ export interface EffectState {
   consumedIds: Set<string>;
   /** Turn snapshots captured before each tool call, by execution id. */
   pendingTurnCheckpoints: Map<string, () => string>;
+  /** Runtime invocation ids to write into the next checkpoint, by execution id. */
+  pendingToolInvocationIds: Map<string, string>;
+  /** Full pending invocation projection for the multi-call checkpoint collection. */
+  pendingToolInvocationMeta: Map<string, PendingToolInvocationCheckpoint>;
+  /** Monotonic order for tool calls in this run attempt. */
+  invocationSequence: number;
   storedTurnCheckpoint: boolean;
 }
 
@@ -430,6 +437,17 @@ export async function persistTurnCheckpoint(ctx: RunContext, executionId?: strin
     const saved = JSON.parse(capture());
     saved.effectOccurrences = effects.occurrences;
     saved.ownInstructionsBaseline = ctx.state.ownInstructionsBaseline;
+    const pending = [...(effects.pendingToolInvocationMeta?.values() ?? [])].sort(
+      (left, right) =>
+        (left.invocationSequence ?? Number.MAX_SAFE_INTEGER) -
+        (right.invocationSequence ?? Number.MAX_SAFE_INTEGER),
+    );
+    if (pending.length > 0) saved.pendingToolInvocations = pending;
+    const invocationId = executionId
+      ? (effects.pendingToolInvocationIds.get(executionId) ??
+        effects.pendingToolInvocationMeta?.get(executionId)?.invocationId)
+      : undefined;
+    if (invocationId) saved.pendingToolInvocationId = invocationId;
     await saveRunTurnCheckpoint(deps.prisma, run, workerId, fence, JSON.stringify(saved));
     effects.storedTurnCheckpoint = true;
   } else if (effects.storedTurnCheckpoint) {
@@ -493,6 +511,28 @@ export function restoreTurnCheckpointEffects(
     if (saved.effectOccurrences) {
       effects.occurrences.push(...saved.effectOccurrences);
       const pendingExecutionId = JSON.stringify(["pi-tool", "main", saved.pendingToolCallId]);
+      if (!effects.pendingToolInvocationMeta) effects.pendingToolInvocationMeta = new Map();
+      if (!effects.pendingToolInvocationIds) effects.pendingToolInvocationIds = new Map();
+      const meta = effects.pendingToolInvocationMeta;
+      const ids = effects.pendingToolInvocationIds;
+      for (const entry of saved.pendingToolInvocations ?? []) {
+        ids.set(entry.executionId, entry.invocationId);
+        meta.set(entry.executionId, entry);
+        effects.invocationSequence = Math.max(
+          effects.invocationSequence ?? 0,
+          entry.invocationSequence ?? 0,
+        );
+      }
+      if (saved.pendingToolInvocationId) {
+        ids.set(pendingExecutionId, saved.pendingToolInvocationId);
+        if (!meta.has(pendingExecutionId)) {
+          meta.set(pendingExecutionId, {
+            invocationId: saved.pendingToolInvocationId,
+            executionId: pendingExecutionId,
+            toolName: "unknown",
+          });
+        }
+      }
       // Provider IDs can repeat in later responses. Only the restored
       // pending call may consume its saved assignment, exactly once.
       effects.restoredPending = saved.effectOccurrences.findLast(

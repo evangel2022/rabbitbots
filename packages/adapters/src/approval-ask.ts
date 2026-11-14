@@ -12,6 +12,7 @@ import {
   toolRequiresExplicitApproval,
 } from "@rakazo/core";
 import { urlSite } from "@rakazo/core/egress";
+import { OWN_BOT_IDENTITY_KEY, ownBotIdentityChange } from "./update-bot-patch.js";
 import { USER_COMPUTER_SCREEN_TOOLS, userComputerAppName } from "./user-computer-tools.js";
 
 export const MAX_APPROVAL_SUMMARY_LENGTH = 500;
@@ -115,6 +116,44 @@ export function buildApprovalAskBlock(
         { id: "deny", label: "Deny" },
       ],
     };
+  }
+  // A name/description update is held by the runtime; the card shows the exact replacement.
+  if (toolName === "update_bot") {
+    const identity = ownBotIdentityChange(args[OWN_BOT_IDENTITY_KEY]);
+    if (identity) {
+      const beforeName = redactSecrets(identity.beforeName, secrets);
+      const beforeDescription = redactSecrets(identity.beforeDescription, secrets);
+      const afterName =
+        identity.name === undefined ? beforeName : redactSecrets(identity.name, secrets);
+      const afterDescription =
+        identity.description === undefined
+          ? beforeDescription
+          : redactSecrets(identity.description, secrets);
+      const lines = [
+        `Current name: ${beforeName}`,
+        `Proposed name: ${afterName}`,
+        `Current description: ${beforeDescription}`,
+        `Proposed description: ${afterDescription}`,
+      ];
+      return {
+        kind: "ask",
+        approvalEffectId: effectId,
+        text: "Bot identity change requested",
+        detail: truncate(lines.join("\n"), MAX_APPROVAL_DETAIL_LENGTH),
+        identityUpdate: {
+          botId: identity.botId,
+          beforeName,
+          beforeDescription,
+          ...(identity.name !== undefined ? { name: afterName } : {}),
+          ...(identity.description !== undefined ? { description: afterDescription } : {}),
+        },
+        status: "pending",
+        actions: [
+          { id: "allow", label: "Approve" },
+          { id: "deny", label: "Reject" },
+        ],
+      };
+    }
   }
   // Only an instruction change held for approval carries the text it replaces.
   if (toolName === "update_bot" && typeof args.previousInstructions === "string") {

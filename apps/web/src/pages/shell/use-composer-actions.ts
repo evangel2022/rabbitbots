@@ -56,6 +56,7 @@ export function useComposerActions({
   activeSnapshot,
   navigate,
   refreshBots,
+  refreshActivity,
   refreshThreadRef,
   refreshGroupThreadRef,
   updateSnapshot,
@@ -78,6 +79,7 @@ export function useComposerActions({
   activeSnapshot: ThreadSnapshot | null;
   navigate: ReturnType<typeof useShellNavigation>["navigate"];
   refreshBots: () => Promise<void>;
+  refreshActivity: () => Promise<void>;
   refreshThreadRef: ThreadRefresh;
   refreshGroupThreadRef: ThreadRefresh;
   updateSnapshot: (update: (prev: ThreadSnapshot | null) => ThreadSnapshot | null) => void;
@@ -495,6 +497,7 @@ export function useComposerActions({
         );
         // Refresh sidebar status even when a bot→group reroute navigates away below.
         void refreshBots().catch(() => undefined);
+        void refreshActivity().catch(() => undefined);
         if (reroutedToGroup && groupTarget) {
           navigate(`/app/g/${groupTarget}`);
           return true;

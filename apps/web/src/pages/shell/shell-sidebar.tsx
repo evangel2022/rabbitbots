@@ -52,6 +52,26 @@ function resetFadeWhenUnscrollable(event: UIEvent<HTMLDivElement>) {
 
 type User = { name?: string | null; email?: string; image?: string | null };
 
+export function ActivityModeBanner({ onBack }: { onBack: () => void }) {
+  return (
+    <div
+      data-testid="activity-mode-banner"
+      className="mx-2.5 mb-1 flex items-center justify-between gap-2 rounded-lg border border-border bg-muted/40 px-2.5 py-1.5"
+    >
+      <span className="text-label font-medium uppercase tracking-wide text-muted-foreground">
+        <Trans>Activity</Trans>
+      </span>
+      <button
+        type="button"
+        onClick={onBack}
+        className="text-label font-medium text-foreground underline underline-offset-2 hover:text-muted-foreground"
+      >
+        <Trans>Back to chats</Trans>
+      </button>
+    </div>
+  );
+}
+
 /** The bots sidebar: a drawer on phones, collapsible to icons elsewhere. */
 export function ShellSidebar({
   isMobile,
@@ -198,6 +218,7 @@ export function ShellSidebar({
           setNewSpaceOpen={setNewSpaceOpen}
           setCreateBotOpen={setCreateBotOpen}
         />
+        {activityMode && !mini ? <ActivityModeBanner onBack={toggleActivityMode} /> : null}
         {mini ||
         !(
           searchOpen ||

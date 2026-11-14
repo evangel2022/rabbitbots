@@ -4416,8 +4416,14 @@ describeJourneys("required product journeys", () => {
       );
       expect((await childState(scout.id)).instructions).toBe("Book venues");
 
-      await sendAndWait(app, cookie, chief.id, `rename bot ${scout.id} to Ranger`);
-      expect((await childState(scout.id)).name).toBe("Ranger");
+      const rename = await sendAndWait(app, cookie, chief.id, `rename bot ${scout.id} to Ranger`);
+      expect(await toolOutcomes(rename.run.id, "update_bot")).toEqual([
+        expect.objectContaining({
+          outcome: "error",
+          error: expect.stringContaining("Settings"),
+        }),
+      ]);
+      expect((await childState(scout.id)).name).toBe("Scout");
 
       const peerEdit = await sendForApproval(
         cookie,
@@ -4668,24 +4674,162 @@ describeJourneys("required product journeys", () => {
       ]);
     });
 
-    it("update_bot on itself ignores blank bot management fields, with the switch off or on", async () => {
-      const { cookie, chief } = await fleetOwner("blank-fields");
+    it("holds a self rename for approval and applies it only after Allow", async () => {
+      const { cookie, chief } = await fleetOwner("identity-allow");
       const plain = await createBot(cookie, "Plain");
       for (const [bot, name] of [
         [plain, "Plainer"],
         [chief, "Chiefer"],
       ] as const) {
-        const done = await sendAndWait(
-          app,
+        const pending = await sendForApproval(
           cookie,
           bot.id,
           `rename yourself to ${name} with blank bot management fields`,
         );
-        expect(await toolOutcomes(done.run.id, "update_bot")).toEqual([
-          expect.objectContaining({ outcome: "succeeded" }),
-        ]);
+        expect((await childState(bot.id)).name).not.toBe(name);
+        expect(
+          await prisma.event.count({ where: { runId: pending.runId, type: "bot.updated" } }),
+        ).toBe(0);
+        const card = JSON.stringify(pending.waiting.messages);
+        expect(card).toContain("Bot identity change requested");
+        expect(card).toContain(`Proposed name: ${name}`);
+        await answerAndSettle(cookie, bot.id, pending, "allow");
+        expect(await toolOutcomes(pending.runId, "update_bot")).toEqual(
+          expect.arrayContaining([expect.objectContaining({ outcome: "succeeded" })]),
+        );
         expect((await childState(bot.id)).name).toBe(name);
+        expect(
+          await prisma.event.count({ where: { runId: pending.runId, type: "bot.updated" } }),
+        ).toBe(1);
       }
+    });
+
+    it("rejects a self rename without writing it", async () => {
+      const { cookie } = await fleetOwner("identity-reject");
+      const bot = await createBot(cookie, "New");
+      const pending = await sendForApproval(
+        cookie,
+        bot.id,
+        "rename yourself to Short with blank bot management fields",
+      );
+      expect((await childState(bot.id)).name).toBe("New");
+      await answerAndSettle(cookie, bot.id, pending, "deny");
+      expect((await childState(bot.id)).name).toBe("New");
+      expect(
+        await prisma.event.count({ where: { runId: pending.runId, type: "bot.updated" } }),
+      ).toBe(0);
+    });
+
+    it("refuses an approved self rename if the bot name changed while pending", async () => {
+      const { cookie } = await fleetOwner("identity-conflict");
+      const bot = await createBot(cookie, "New");
+      const pending = await sendForApproval(
+        cookie,
+        bot.id,
+        "rename yourself to Short with blank bot management fields",
+      );
+      await rpc(app, cookie, "bots/update", { botId: bot.id, name: "Changed meanwhile" });
+      await answerAndSettle(cookie, bot.id, pending, "allow");
+      expect((await childState(bot.id)).name).toBe("Changed meanwhile");
+      expect(await toolOutcomes(pending.runId, "update_bot")).toEqual(
+        expect.arrayContaining([expect.objectContaining({ outcome: "error" })]),
+      );
+    });
+
+    it("does not let another user answer an identity approval", async () => {
+      const { cookie } = await fleetOwner("identity-other-user");
+      const bot = await createBot(cookie, "New");
+      const pending = await sendForApproval(
+        cookie,
+        bot.id,
+        "rename yourself to Short with blank bot management fields",
+      );
+      const card = pending.waiting.messages.find((message) =>
+        message.blocks.some(
+          (block) =>
+            typeof block === "object" &&
+            block !== null &&
+            "kind" in block &&
+            block.kind === "ask" &&
+            "identityUpdate" in block,
+        ),
+      );
+      if (!card) throw new Error("identity approval card missing");
+      const outsider = await signup(app, `identity-outsider-${stamp}@rakazo.test`, "Outsider");
+      const response = await raw(app, outsider, "threads/answer", {
+        botId: bot.id,
+        runId: pending.runId,
+        messageId: card.id,
+        answer: "allow",
+      });
+      expect(response.status).toBeGreaterThanOrEqual(400);
+      expect((await childState(bot.id)).name).toBe("New");
+      await answerAndSettle(cookie, bot.id, pending, "deny");
+    });
+
+    it("does not apply an identity change twice after it is approved", async () => {
+      const { cookie } = await fleetOwner("identity-idempotent");
+      const bot = await createBot(cookie, "New");
+      const pending = await sendForApproval(
+        cookie,
+        bot.id,
+        "rename yourself to Short with blank bot management fields",
+      );
+      const card = pending.waiting.messages.find((message) =>
+        message.blocks.some(
+          (block) =>
+            typeof block === "object" &&
+            block !== null &&
+            "kind" in block &&
+            block.kind === "ask" &&
+            "identityUpdate" in block,
+        ),
+      );
+      if (!card) throw new Error("identity approval card missing");
+      await answerAndSettle(cookie, bot.id, pending, "allow");
+      expect((await childState(bot.id)).name).toBe("Short");
+      const eventsAfterFirst = await prisma.event.count({
+        where: { runId: pending.runId, type: "bot.updated" },
+      });
+      const response = await raw(app, cookie, "threads/answer", {
+        botId: bot.id,
+        runId: pending.runId,
+        messageId: card.id,
+        answer: "allow",
+      });
+      expect(response.status).not.toBe(200);
+      expect((await childState(bot.id)).name).toBe("Short");
+      expect(
+        await prisma.event.count({ where: { runId: pending.runId, type: "bot.updated" } }),
+      ).toBe(eventsAfterFirst);
+    });
+
+    it("still asks for an identity change in Never ask mode", async () => {
+      const { cookie } = await fleetOwner("identity-never");
+      await rpc(app, cookie, "autoReview/set", { mode: "never" });
+      const bot = await createBot(cookie, "New");
+      const pending = await sendForApproval(
+        cookie,
+        bot.id,
+        "rename yourself to Short with blank bot management fields",
+      );
+      expect((await childState(bot.id)).name).toBe("New");
+      expect(JSON.stringify(pending.waiting.messages)).toContain("Bot identity change requested");
+      await answerAndSettle(cookie, bot.id, pending, "deny");
+      expect((await childState(bot.id)).name).toBe("New");
+    });
+
+    it("keeps the existing instruction approval flow without changing the name", async () => {
+      const { cookie } = await fleetOwner("identity-instructions");
+      const bot = await createBot(cookie, "New");
+      const pending = await sendForApproval(
+        cookie,
+        bot.id,
+        "update your instructions to: Answer in two sentences.",
+      );
+      await answerAndSettle(cookie, bot.id, pending, "allow");
+      expect((await childState(bot.id)).name).toBe("New");
+      expect((await childState(bot.id)).instructions).toContain("Answer in two sentences.");
     });
 
     it("turning the switch off during the pause refuses the approved child change", async () => {

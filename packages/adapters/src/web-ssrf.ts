@@ -1,4 +1,5 @@
 import { lookup } from "node:dns/promises";
+import type { EgressProxyResolver } from "@rakazo/adapter-kit";
 import {
   ipVersion,
   isCloudMetadataHost,
@@ -10,7 +11,10 @@ import { readBoundedResponseBytes } from "@rakazo/core";
 import type { Dispatcher } from "undici";
 import type { ResolvedAddress, ResolveHostname } from "./network-address.js";
 import { egressRefused } from "./network-address.js";
-import { createCheckedProxyDispatcher } from "./proxy-dispatcher.js";
+import {
+  createCheckedProxyDispatcher,
+  createCheckedProxyDispatcherFor,
+} from "./proxy-dispatcher.js";
 import { fetchPairedWithDispatcher } from "./undici-fetch.js";
 
 const DEFAULT_TIMEOUT_MS = 15_000;
@@ -33,6 +37,8 @@ export interface SafeWebFetchOptions {
   truncate?: boolean;
   /** Refuse any hop, redirects included, whose port is not listed. */
   allowedPorts?: readonly number[];
+  /** Resolve the authenticated user's egress route for this request. */
+  resolveEgressProxy?: EgressProxyResolver;
   /**
    * Test seam for dispatcher teardown. Defaults to `dispatcher.close()`.
    * Always raced against the shared operation deadline.
@@ -184,10 +190,20 @@ async function withSafeEgress<T>(
   const resolve = options.resolveHostname ?? defaultResolveHostname;
   const timeoutMs = options.timeoutMs ?? DEFAULT_TIMEOUT_MS;
   const baseFetch = fetchPairedWithDispatcher(options.fetch);
-  const dispatcher = createCheckedProxyDispatcher(resolve, (addresses, hostname) => {
+  const validate = (addresses: ResolvedAddress[], hostname: string) => {
     if (isBlockedHostname(hostname)) throw new Error("URL targets a private or internal host");
     assertPublicAddresses(addresses);
-  });
+  };
+  const route = options.resolveEgressProxy ? await options.resolveEgressProxy() : undefined;
+  const dispatcher = route
+    ? createCheckedProxyDispatcherFor(
+        resolve,
+        validate,
+        route.mode === "proxy"
+          ? { httpProxy: route.url, httpsProxy: route.url, noProxy: route.bypass.join(",") }
+          : {},
+      )
+    : createCheckedProxyDispatcher(resolve, validate);
   // One deadline for the whole redirect chain + body read + cleanup, not per hop.
   const signal = combineSignals(options.signal, AbortSignal.timeout(timeoutMs));
   const cleanup =

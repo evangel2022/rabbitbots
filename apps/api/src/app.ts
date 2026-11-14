@@ -44,6 +44,7 @@ import {
   createRunSecretWriter,
   createSecretStore,
   createTicketChangeNotifier,
+  createUserProxyModelFetchResolver,
   EmailEmulator,
   ExpoPushProvider,
   GraphileJobPublisher,
@@ -51,6 +52,7 @@ import {
   InMemoryRealtimeFanout,
   installedMessaging,
   isMessagingSurfaceEnabled,
+  loadAndApplyOutboundProxy,
   messagingPlatformsFromEnv,
   ObjectAgentHomeStore,
   PiAgentRuntime,
@@ -304,6 +306,8 @@ async function buildApp(overrides: CreateAppOverrides): Promise<AppHandles> {
   prisma = withSecretPersistence(prisma, secrets);
   installSecurityEventStore(prisma);
   installAuditEventStore(prisma);
+  // Deployment-saved proxy choices override the process environment; null keeps existing env behavior.
+  await loadAndApplyOutboundProxy(prisma, secrets);
   const unreadableMasterKeys = await verifyContentKeys(prisma);
   if (unreadableMasterKeys.length)
     logger.error("Stored space keys need master keys that are not configured", undefined, {
@@ -462,6 +466,7 @@ async function buildApp(overrides: CreateAppOverrides): Promise<AppHandles> {
     (env.agentRuntime === "scripted"
       ? new ScriptedAgentRuntime()
       : new PiAgentRuntime({
+          modelFetchForRun: createUserProxyModelFetchResolver(prisma, secrets),
           sessionRoot: env.piSessionRecording ? piSessionsRoot(env.dataDir) : undefined,
         }));
   const pushTokens = new PrismaPushTokenStore(prisma, env.encryptionKey);

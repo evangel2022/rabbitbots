@@ -96,6 +96,7 @@ export class KeylessHttpWebProvider implements WebProvider {
       maxBytes: 1024 * 1024,
       userAgent: this.userAgent,
       signal: request.signal ?? context.signal,
+      resolveEgressProxy: context.resolveEgressProxy,
     });
     return this.searchBackend.parse(body, maxResults);
   }
@@ -110,6 +111,7 @@ export class KeylessHttpWebProvider implements WebProvider {
       maxBytes: this.maxBufferBytes,
       userAgent: this.userAgent,
       signal: request.signal ?? context.signal,
+      resolveEgressProxy: context.resolveEgressProxy,
     });
     if (!body.trim()) throw new Error(`Failed to fetch content from ${url}`);
     const mediaType = contentType?.split(";", 1)[0]?.trim().toLowerCase();

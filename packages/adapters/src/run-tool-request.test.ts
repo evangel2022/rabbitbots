@@ -11,6 +11,8 @@ function ownBotUpdateCall() {
             fleetManagement: true,
             modelProvider: "openrouter",
             modelId: "current-model",
+            name: "New",
+            description: "",
           }),
           findUniqueOrThrow: async () => ({ instructions: "" }),
         },
@@ -49,6 +51,87 @@ function ownBotUpdateCall() {
   };
   return { ctx, request: () => structuredClone(request) };
 }
+
+describe("prepareToolRequest: own bot identity changes", () => {
+  it("holds a name change for explicit approval without writing it", async () => {
+    const { ctx, request } = ownBotUpdateCall();
+    const call = request();
+    call.args = { name: "Short" };
+    await expect(prepareToolRequest(ctx as never, call)).resolves.toBeUndefined();
+    expect(call.heldForApproval).toBe(true);
+    expect(call.identityApproval).toBe(true);
+    expect(call.args).toEqual({
+      identityUpdate: {
+        botId: "bot-1",
+        beforeName: "New",
+        beforeDescription: "",
+        name: "Short",
+      },
+    });
+  });
+
+  it("holds a description change and keeps the name baseline", async () => {
+    const { ctx, request } = ownBotUpdateCall();
+    const call = request();
+    call.args = { description: "Short answers" };
+    await prepareToolRequest(ctx as never, call);
+    expect(call.args).toEqual({
+      identityUpdate: {
+        botId: "bot-1",
+        beforeName: "New",
+        beforeDescription: "",
+        description: "Short answers",
+      },
+    });
+  });
+
+  it("rejects an identity change mixed with instructions in one call", async () => {
+    const { ctx, request } = ownBotUpdateCall();
+    const call = request();
+    call.args = { name: "Short", instructions: "Answer briefly." };
+    await expect(prepareToolRequest(ctx as never, call)).resolves.toEqual({
+      error: expect.stringContaining("without instructions"),
+    });
+    expect(call.args.name).toBe("Short");
+    expect(call.heldForApproval).toBe(false);
+  });
+
+  it("does not hold a repeated name", async () => {
+    const { ctx, request } = ownBotUpdateCall();
+    const call = request();
+    call.args = { name: "New" };
+    await prepareToolRequest(ctx as never, call);
+    expect(call.heldForApproval).toBe(false);
+    expect(call.args).toEqual({});
+  });
+
+  it("refuses another bot's identity change from chat", async () => {
+    const { ctx, request } = ownBotUpdateCall();
+    const call = request();
+    call.args = { bot_id: "other-bot", name: "Short" };
+    await expect(prepareToolRequest(ctx as never, call)).resolves.toEqual({
+      error: expect.stringContaining("Settings"),
+    });
+    expect(call.identityApproval).toBeFalsy();
+  });
+
+  it("revalidates the approved replay marker without asking again", async () => {
+    const { ctx, request } = ownBotUpdateCall();
+    const call = request();
+    call.nextApprovedTool = "update_bot";
+    call.args = {
+      identityUpdate: {
+        botId: "bot-1",
+        beforeName: "New",
+        beforeDescription: "",
+        name: "Short",
+      },
+    };
+    await prepareToolRequest(ctx as never, call);
+    expect(call.heldForApproval).toBe(true);
+    expect(call.identityApproval).toBe(true);
+  });
+});
 
 describe("prepareToolRequest: update_bot owner settings after outside content", () => {
   it("refuses once, then ends the turn instead of repeating the refusal", async () => {

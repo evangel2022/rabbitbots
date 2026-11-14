@@ -21,6 +21,7 @@ import type { ChatTarget } from "../../lib/query";
 import { lastChatKey, queryClient, seedOnLeave, spaceSeedKey } from "../../lib/query";
 import type { createSpaceRpc } from "../../lib/rpc";
 import { errorText } from "../../lib/user-error";
+import { withCreatedBot } from "./roster-create";
 import type { RosterDropTarget } from "./roster-drop";
 import { resolveRosterDrop } from "./roster-drop";
 import type { useShellNavigation } from "./use-shell-navigation";
@@ -189,9 +190,7 @@ export function useSpaceRoster({
   /** Shows a bot created here at once: a roster requested before creation may omit it. */
   function addCreatedBot(bot: Bot) {
     botsRefreshEpoch.current += 1;
-    setBots((current) =>
-      current.some((item) => item.id === bot.id) ? current : [bot, ...current],
-    );
+    setBots((current) => withCreatedBot(current, bot));
   }
 
   return {

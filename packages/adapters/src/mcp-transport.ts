@@ -186,9 +186,12 @@ export function secureFetch(
     "cookie",
     "proxy-authorization",
   ]);
-  const safeRemoteFetch = createSafeRemoteFetch(network.fetch, network.resolveHostname, {
-    allowPrivateEndpoint: urlPolicy.allowPrivateEndpoint,
-  });
+  const safeRemoteFetch = createSafeRemoteFetch(
+    network.fetch,
+    network.resolveHostname,
+    { allowPrivateEndpoint: urlPolicy.allowPrivateEndpoint },
+    network.resolveEgressProxy,
+  );
   const request = async (input: Request | URL | string, init?: RequestInit): Promise<Response> => {
     if (input instanceof Request) requestSignalOwners.set(input.signal, input);
     const source = new Request(input, init);

@@ -17,6 +17,7 @@ import {
 import { CARD_TITLE_ESCAPED_CHARACTERS, ONCE_ROUTINE_CRON, redactSecrets } from "@rakazo/core";
 import type { Prisma, PrismaClient, ThreadEvents } from "@rakazo/db";
 import {
+  appendEventInTransaction,
   commitBotUpdate,
   createGroupRepos,
   createRepos,
@@ -24,6 +25,7 @@ import {
   IsolationError,
   isRecordNotFound,
   SpaceDeletionInProgressError,
+  THREAD_LOCK_TRANSACTION_OPTIONS,
 } from "@rakazo/db";
 import { getLogger } from "@rakazo/logging";
 import type { FleetCardSummary } from "./approval-ask.js";
@@ -46,8 +48,13 @@ import {
   scheduleTimingArgs,
   userTimeZone,
 } from "./schedule-tools.js";
-import type { UpdateBotPatch } from "./update-bot-patch.js";
-import { argumentGiven, parseUpdateBotPatch } from "./update-bot-patch.js";
+import type { OwnBotIdentityChange, UpdateBotPatch } from "./update-bot-patch.js";
+import {
+  argumentGiven,
+  ownBotIdentityChange,
+  parseUpdateBotPatch,
+  sameOwnBotIdentityChange,
+} from "./update-bot-patch.js";
 
 /** The fleet writes resolved up front so an approval card can show what will run. */
 export type FleetApprovalToolName = Exclude<
@@ -1295,6 +1302,101 @@ function formatTime(date: Date, timezone: string): string {
     timeStyle: "short",
   }).format(date);
   return `${local} ${timezone}`;
+}
+
+/** Apply a name/description proposal after the owner approved it, refusing a stale baseline. */
+export async function updateOwnBotIdentityFromTool(
+  deps: ExecutorDeps,
+  run: { id: string; spaceId: string },
+  threadId: string,
+  bot: { id: string; name: string },
+  change: OwnBotIdentityChange,
+  effectId: string,
+) {
+  if (change.botId !== bot.id) return { error: "This identity change belongs to another bot." };
+  try {
+    const committed = await deps.prisma.$transaction(async (tx) => {
+      // Same lock order as commitBotUpdate: the event append also takes the thread.
+      await tx.$queryRaw`SELECT id FROM threads WHERE id = ${threadId} FOR UPDATE`;
+      const effect = await tx.externalEffect.findUnique({
+        where: { id: effectId },
+        select: {
+          id: true,
+          kind: true,
+          status: true,
+          runId: true,
+          spaceId: true,
+          request: true,
+        },
+      });
+      const stored = ownBotIdentityChange(
+        (effect?.request as { identityUpdate?: unknown } | null)?.identityUpdate,
+      );
+      if (
+        effect?.kind !== "update_bot" ||
+        effect.status !== "executing" ||
+        effect.runId !== run.id ||
+        effect.spaceId !== run.spaceId ||
+        !sameOwnBotIdentityChange(stored, change)
+      )
+        return {
+          error:
+            "This identity change is no longer the approved request for this run. Nothing was written.",
+        };
+      // Baseline read and write are serialized by the row lock; a competing writer either
+      // commits first (making this check fail) or waits for this transaction.
+      const [current] = await tx.$queryRaw<
+        Array<{ id: string; name: string; description: string }>
+      >`
+        SELECT id, name, description FROM bots
+        WHERE id = ${bot.id} AND "spaceId" = ${run.spaceId}
+        FOR UPDATE
+      `;
+      if (!current) return { error: "This bot no longer exists in this space." };
+      if (
+        current.name !== change.beforeName ||
+        (current.description ?? "") !== change.beforeDescription
+      )
+        return {
+          error:
+            "This bot's name or description changed before the approval was applied. Read it again and propose the change once more.",
+        };
+      const updated = await tx.bot.update({
+        where: { id: bot.id },
+        data: {
+          ...(change.name !== undefined ? { name: change.name } : {}),
+          ...(change.description !== undefined ? { description: change.description } : {}),
+        },
+        select: { id: true, name: true, description: true },
+      });
+      const event = await appendEventInTransaction(tx, {
+        spaceId: run.spaceId,
+        threadId,
+        botId: bot.id,
+        runId: run.id,
+        type: "bot.updated",
+        payload: {
+          botId: updated.id,
+          name: updated.name,
+          description: updated.description,
+        },
+      });
+      return { updated, seq: event.seq };
+    }, THREAD_LOCK_TRANSACTION_OPTIONS);
+    if ("error" in committed) return { error: committed.error };
+    await deps.events.notify(threadId, committed.seq).catch((error) => {
+      getLogger().error("bot.updated realtime notification", error);
+    });
+    return {
+      ok: true,
+      botId: committed.updated.id,
+      name: committed.updated.name,
+      description: committed.updated.description,
+    };
+  } catch (error) {
+    getLogger().error("bot identity update rolled back", error);
+    return { error: "The bot identity change could not be saved. Nothing was changed." };
+  }
 }
 
 /** update_bot on the calling bot's own profile. */

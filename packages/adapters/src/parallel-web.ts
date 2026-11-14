@@ -135,7 +135,13 @@ export class ParallelWebProvider implements WebProvider {
       .digest("hex");
     const raw = await withAbort(
       callRemoteMcpTool(
-        { ...this.options, endpoint: ENDPOINT, headers: { "User-Agent": USER_AGENT }, signal },
+        {
+          ...this.options,
+          endpoint: ENDPOINT,
+          headers: { "User-Agent": USER_AGENT },
+          signal,
+          resolveEgressProxy: context.resolveEgressProxy,
+        },
         name,
         { ...args, session_id: sessionId },
         (raw) => {

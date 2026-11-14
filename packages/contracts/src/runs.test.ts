@@ -8,6 +8,16 @@ import {
 } from "./runs.js";
 
 describe("run triggers", () => {
+  it("includes the runtime workflow triggers", () => {
+    for (const trigger of ["workforce_task", "meeting_action", "delegation_continuation"]) {
+      expect(RunTriggerSchema.parse(trigger)).toBe(trigger);
+    }
+  });
+
+  it("rejects an unknown trigger", () => {
+    expect(RunTriggerSchema.safeParse("not_a_real_trigger").success).toBe(false);
+  });
+
   it("accepts every shared trigger in the run output schemas", () => {
     for (const trigger of RUN_TRIGGERS) {
       expect(RunTriggerSchema.parse(trigger)).toBe(trigger);

@@ -86,7 +86,7 @@ export const MeetingActionAttemptView = z.object({
   attemptNumber: z.number().int(),
   taskId: Id.nullable(),
   botRunId: Id.nullable(),
-  status: z.enum(["RUNNING", "COMPLETED", "FAILED", "BLOCKED"]),
+  status: z.enum(["RUNNING", "COMPLETED", "FAILED", "BLOCKED", "CANCELLED"]),
   resultStatus: MeetingActionResultStatus.nullable(),
   resultSummary: z.string().nullable(),
   evidence: z.array(z.string()),
@@ -94,6 +94,9 @@ export const MeetingActionAttemptView = z.object({
   startedAt: IsoDate.nullable(),
   completedAt: IsoDate.nullable(),
   createdAt: IsoDate,
+  /** Run metadata for Workforce execution history; null on non-Run attempts. */
+  runStatus: z.string().nullable().optional(),
+  runTrigger: z.string().nullable().optional(),
 });
 export type MeetingActionAttemptView = z.infer<typeof MeetingActionAttemptView>;
 

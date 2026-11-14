@@ -46,6 +46,7 @@ const botsRef = ref<Bot[]>([]);
 const terminalRunReceipts = ref(new Set<string>());
 const computerRef = ref<ComputerStatus | null>(null);
 const refreshBots = async () => undefined;
+const refreshActivity = vi.fn(async () => undefined);
 const updateSnapshot = () => undefined;
 const commitComputer = () => undefined;
 const clearReadBoundary = () => undefined;
@@ -71,6 +72,7 @@ function Harness({ extras }: { extras?: Record<string, unknown> }) {
     activeSnapshot,
     navigate: navigate as never,
     refreshBots,
+    refreshActivity,
     refreshThreadRef,
     refreshGroupThreadRef: ref(async () => ({}) as ThreadSnapshot),
     updateSnapshot,
@@ -108,6 +110,7 @@ beforeEach(() => {
   terminalRunReceipts.current = new Set();
   computerRef.current = null;
   pageSession = createPageSession();
+  refreshActivity.mockClear();
   rpc = {
     routines: { testRun: vi.fn() },
     artifacts: { create: vi.fn() },
@@ -289,6 +292,28 @@ it("sends text and routines as one request and gives the draft back when it fail
       text: expect.stringContaining("and the notes"),
     }),
   );
+});
+
+it("keeps the existing roster when a send fails", async () => {
+  botsRef.current = [{ id: "bot-1", name: "Existing" } as Bot];
+  rpc.threads.send.mockRejectedValue(new Error("offline"));
+
+  expect(await send("hello", [])).toBe(false);
+  expect(botsRef.current).toEqual([{ id: "bot-1", name: "Existing" }]);
+});
+
+it("refreshes activity after an accepted direct send", async () => {
+  rpc.threads.send.mockResolvedValue({ runId: "run-1", taskId: "task-1" });
+
+  expect(await send("hello", [])).toBe(true);
+  expect(refreshActivity).toHaveBeenCalledTimes(1);
+});
+
+it("does not refresh activity for a rejected send", async () => {
+  rpc.threads.send.mockRejectedValue(new Error("offline"));
+
+  expect(await send("hello", [])).toBe(false);
+  expect(refreshActivity).not.toHaveBeenCalled();
 });
 
 it("clears the draft once the send with routines is accepted", async () => {

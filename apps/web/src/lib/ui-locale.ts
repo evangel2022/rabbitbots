@@ -27,15 +27,6 @@ function readEnvDefault(env: { VITE_DEFAULT_UI_LOCALE?: string } | undefined): s
   return typeof value === "string" && value.trim() ? value.trim() : null;
 }
 
-function readNavigatorLanguage(
-  nav: Pick<Navigator, "language" | "languages"> | null | undefined,
-): string | null {
-  if (!nav) return null;
-  if (typeof nav.language === "string" && nav.language) return nav.language;
-  const first = nav.languages?.[0];
-  return typeof first === "string" && first ? first : null;
-}
-
 export type ResolveUiLocaleOptions = {
   stored?: string | null;
   envDefault?: string | null;
@@ -46,8 +37,12 @@ export type ResolveUiLocaleOptions = {
 };
 
 /**
- * Order: saved choice (`localStorage`) → `VITE_DEFAULT_UI_LOCALE` →
- * `navigator.language` → English.
+ * Order: saved choice (`localStorage`) → `VITE_DEFAULT_UI_LOCALE` → English.
+ *
+ * The product UI ships in English. Navigator language is deliberately not used to
+ * choose a locale automatically: doing so mixed translated strings with the
+ * English source strings throughout the interface. A user can still choose a
+ * locale in Settings, which is persisted here and overrides this default.
  */
 export function resolveUiLocale(options: ResolveUiLocaleOptions = {}): UiLocale {
   const stored =
@@ -68,14 +63,6 @@ export function resolveUiLocale(options: ResolveUiLocaleOptions = {}): UiLocale 
               : undefined),
         );
   if (envDefault) return normalizeUiLocale(envDefault);
-
-  const navigatorLanguage =
-    options.navigatorLanguage !== undefined
-      ? options.navigatorLanguage
-      : readNavigatorLanguage(
-          options.navigator ?? (typeof navigator !== "undefined" ? navigator : null),
-        );
-  if (navigatorLanguage) return normalizeUiLocale(navigatorLanguage);
 
   return "en";
 }

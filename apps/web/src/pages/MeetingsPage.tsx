@@ -27,6 +27,8 @@ import { useQuery, useQueryClient } from "@tanstack/react-query";
 import { ChevronLeft, Landmark, Plus, RefreshCw, Send, Users, Wifi, WifiOff } from "lucide-react";
 import { useEffect, useRef, useState } from "react";
 import { Link, useSearchParams } from "react-router-dom";
+import { MeetingStructuredTurn } from "../components/MeetingStructuredContent";
+import { getActiveUiLocale } from "../lib/i18n";
 import { mergeMeetingTranscript } from "../lib/meeting-transcript";
 import { rpc } from "../lib/rpc";
 import { errorText } from "../lib/user-error";
@@ -80,50 +82,6 @@ function agendaStatusLabel(status: string) {
   return "Pending";
 }
 
-function agendaQuestion(content: string): string {
-  try {
-    const parsed = JSON.parse(content.replace(/^```json\s*/i, "").replace(/```\s*$/, "")) as {
-      question?: unknown;
-    };
-    if (typeof parsed.question === "string") return parsed.question;
-  } catch {
-    // The model sometimes emits concatenated or loosely quoted review JSON.
-  }
-  const match = content.match(/"question"\s*:\s*"((?:\\.|[^"\\])*)"/);
-  if (!match) return content;
-  try {
-    return JSON.parse(`"${match[1]!.replace(/\n/g, "\\n")}"`) as string;
-  } catch {
-    return match[1]!.replace(/\\n/g, "\n").replace(/\\"/g, '"');
-  }
-}
-
-function agendaReviewDetails(content: string): {
-  state: string;
-  consensus: string[];
-  disagreements: string[];
-  evidenceGaps: string[];
-} {
-  try {
-    const parsed = JSON.parse(content.replace(/^```json\s*/i, "").replace(/```\s*$/, "")) as {
-      state?: unknown;
-      consensus?: unknown;
-      disagreements?: unknown;
-      evidenceGaps?: unknown;
-    };
-    const list = (value: unknown) =>
-      Array.isArray(value) ? value.filter((item): item is string => typeof item === "string") : [];
-    return {
-      state: typeof parsed.state === "string" ? parsed.state.toUpperCase() : "",
-      consensus: list(parsed.consensus),
-      disagreements: list(parsed.disagreements),
-      evidenceGaps: list(parsed.evidenceGaps),
-    };
-  } catch {
-    return { state: "", consensus: [], disagreements: [], evidenceGaps: [] };
-  }
-}
-
 function statusDot(status: MeetingStatus) {
   if (status === "FAILED") return "bg-destructive";
   if (status === "COMPLETED") return "bg-success";
@@ -133,7 +91,7 @@ function statusDot(status: MeetingStatus) {
 
 function formatTime(value: string | null) {
   if (!value) return "—";
-  return new Intl.DateTimeFormat(undefined, {
+  return new Intl.DateTimeFormat(getActiveUiLocale(), {
     month: "short",
     day: "numeric",
     hour: "2-digit",
@@ -612,7 +570,14 @@ export function MeetingsPage() {
           <div className="min-h-0 flex-1 overflow-y-auto px-2 pb-3">
             {meetings.length === 0 ? (
               <div className="rounded-lg border border-dashed p-3 text-body-sm text-muted-foreground">
-                <Trans>No meetings yet. Create the investor review to begin.</Trans>
+                <Trans>No meetings yet.</Trans>{" "}
+                <Link
+                  to="/app/workforce"
+                  className="text-primary underline-offset-4 hover:underline"
+                >
+                  <Trans>Create an AI Company</Trans>
+                </Link>{" "}
+                <Trans>or start a meeting.</Trans>
               </div>
             ) : (
               meetings.map((item) => (
@@ -695,9 +660,23 @@ export function MeetingsPage() {
                     ) : null}
                   </div>
                   <h2 className="mt-1 text-body-xl font-medium">{meeting.title}</h2>
-                  <p className="mt-1 max-w-[46rem] text-body-sm text-muted-foreground">
-                    {meeting.description}
-                  </p>
+                  {meeting.description.startsWith("RabbitBots demo ·") ? (
+                    <div className="mt-1 max-w-[46rem] text-body-sm text-muted-foreground">
+                      <p>{meeting.description.split("\n\n")[0]}</p>
+                      <details className="mt-1">
+                        <summary className="cursor-pointer text-label">
+                          <Trans>Demo context</Trans>
+                        </summary>
+                        <p className="mt-1 whitespace-pre-wrap text-label">
+                          {meeting.description.split("\n\n").slice(1).join("\n\n")}
+                        </p>
+                      </details>
+                    </div>
+                  ) : (
+                    <p className="mt-1 max-w-[46rem] text-body-sm text-muted-foreground">
+                      {meeting.description}
+                    </p>
+                  )}
                   {meeting.status !== "COMPLETED" &&
                   meeting.status !== "CANCELLED" &&
                   meeting.status !== "FAILED" ? (
@@ -861,39 +840,12 @@ export function MeetingsPage() {
                       <div className="text-label text-muted-foreground">
                         <Trans>Chair review</Trans> · round {selectedReview.round}
                       </div>
-                      <p className="mt-1 text-body-sm">{agendaQuestion(selectedReview.content)}</p>
-                      {(() => {
-                        const details = agendaReviewDetails(selectedReview.content);
-                        if (
-                          !details.state &&
-                          !details.consensus.length &&
-                          !details.disagreements.length &&
-                          !details.evidenceGaps.length
-                        )
-                          return null;
-                        return (
-                          <div className="mt-2 space-y-1 text-label">
-                            {details.state ? (
-                              <div className="font-medium">
-                                Discussion state: {details.state.replaceAll("_", " ").toLowerCase()}
-                              </div>
-                            ) : null}
-                            {details.consensus.length ? (
-                              <div>Consensus: {details.consensus.join("; ")}</div>
-                            ) : null}
-                            {details.disagreements.length ? (
-                              <div className="text-warning">
-                                Disagreement: {details.disagreements.join("; ")}
-                              </div>
-                            ) : null}
-                            {details.evidenceGaps.length ? (
-                              <div className="text-muted-foreground">
-                                Evidence gaps: {details.evidenceGaps.join("; ")}
-                              </div>
-                            ) : null}
-                          </div>
-                        );
-                      })()}
+                      <div className="mt-1">
+                        <MeetingStructuredTurn
+                          content={selectedReview.content}
+                          phase={selectedReview.phase}
+                        />
+                      </div>
                       <p className="mt-1 text-label text-muted-foreground">
                         {selectedResponses.length} participant response(s) recorded
                       </p>
@@ -938,7 +890,7 @@ export function MeetingsPage() {
                                 <span className="ms-auto">{formatTime(turn.createdAt)}</span>
                               </div>
                               <div className="mt-1.5">
-                                <ChatMarkdown>{turn.content}</ChatMarkdown>
+                                <MeetingStructuredTurn content={turn.content} phase={turn.phase} />
                               </div>
                               {evidenceSources(turn.evidence).length ? (
                                 <div className="mt-2 flex flex-wrap gap-x-3 gap-y-1 text-label">

@@ -8,7 +8,7 @@ import {
 } from "@modelcontextprotocol/sdk/client/streamableHttp.js";
 import type { RequestOptions } from "@modelcontextprotocol/sdk/shared/protocol.js";
 import type { Tool } from "@modelcontextprotocol/sdk/types.js";
-import type { ConnectorTool } from "@rakazo/adapter-kit";
+import type { ConnectorTool, EgressProxyResolver } from "@rakazo/adapter-kit";
 import {
   ipVersion,
   isCloudMetadataAddress,
@@ -39,7 +39,10 @@ import {
   egressRefused,
   withPinnedDnsLookup,
 } from "./network-address.js";
-import { createCheckedProxyDispatcher } from "./proxy-dispatcher.js";
+import {
+  createCheckedProxyDispatcher,
+  createCheckedProxyDispatcherFor,
+} from "./proxy-dispatcher.js";
 import { dispatcherFetch, fetchPairedWithDispatcher } from "./undici-fetch.js";
 
 const DEFAULT_MAX_MCP_TOOLS = 250;
@@ -57,6 +60,8 @@ export interface RemoteUrlPolicy {
 export interface RemoteTransportDependencies {
   fetch?: typeof globalThis.fetch;
   resolveHostname?: ResolveHostname;
+  /** Resolve the authenticated user's effective egress route for this request. */
+  resolveEgressProxy?: EgressProxyResolver;
 }
 
 export interface RemoteMcpOptions extends RemoteTransportDependencies, RemoteUrlPolicy {
@@ -315,6 +320,7 @@ async function withRemoteMcpClient<T>(
     options.fetch,
     options.resolveHostname ?? resolveHostname,
     policy,
+    options.resolveEgressProxy,
   );
   const transport = new StreamableHTTPClientTransport(endpoint, {
     requestInit: {
@@ -682,10 +688,29 @@ export function createSafeRemoteFetch(
   baseFetch?: typeof globalThis.fetch,
   resolve: ResolveHostname = resolveHostname,
   policy: RemoteUrlPolicy = {},
+  resolveEgressProxy?: EgressProxyResolver,
 ): SafeRemoteFetch {
-  const dispatcher = createCheckedProxyDispatcher(resolve, (addresses, hostname) =>
-    assertSafeRemoteAddresses(addresses, hostname, policy),
-  );
+  const validate = (addresses: ResolvedAddress[], hostname: string) =>
+    assertSafeRemoteAddresses(addresses, hostname, policy);
+  const systemDispatcher = createCheckedProxyDispatcher(resolve, validate);
+  let routeDispatcher: ReturnType<typeof createCheckedProxyDispatcherFor> | undefined;
+  let routeKey: string | undefined;
+  const dispatcherFor = async () => {
+    if (!resolveEgressProxy) return systemDispatcher;
+    const route = await resolveEgressProxy();
+    const next =
+      route.mode === "direct"
+        ? {}
+        : { httpProxy: route.url, httpsProxy: route.url, noProxy: route.bypass.join(",") };
+    const key = route.mode === "proxy" ? JSON.stringify([route.url, route.bypass]) : "direct";
+    if (!routeDispatcher || routeKey !== key) {
+      const previous = routeDispatcher;
+      routeDispatcher = createCheckedProxyDispatcherFor(resolve, validate, next);
+      routeKey = key;
+      await previous?.close().catch(() => undefined);
+    }
+    return routeDispatcher;
+  };
   // Injected fetches are not given this Agent; they keep the original hostname
   // for TLS/SNI and pin TCP to the already-validated address through dns.lookup.
   const usePackageFetch = fetchPairedWithDispatcher(baseFetch) === dispatcherFetch;
@@ -700,7 +725,7 @@ export function createSafeRemoteFetch(
       response = usePackageFetch
         ? await dispatcherFetch(url, {
             ...requestInit,
-            dispatcher,
+            dispatcher: await dispatcherFor(),
           } as RequestInit & { dispatcher: Agent })
         : await withPinnedDnsLookup(url.hostname, addresses, () =>
             baseFetch!(url, requestInitWithHost(url, requestInit)),
@@ -718,7 +743,9 @@ export function createSafeRemoteFetch(
     return response;
   };
   const result = safeFetch as SafeRemoteFetch;
-  result.close = () => dispatcher.close();
+  result.close = async () => {
+    await Promise.all([systemDispatcher.close(), routeDispatcher?.close()]);
+  };
   return result;
 }
 

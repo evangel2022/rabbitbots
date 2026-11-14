@@ -921,6 +921,35 @@ it("sends Undo to the chat's space, not the one selected in another tab", async 
   expect(rpc.bots.update).not.toHaveBeenCalled();
 });
 
+it("shows a bot identity proposal with Approve and Reject", async () => {
+  const onAnswer = vi.fn(async () => undefined);
+  const block: AskBlock = {
+    kind: "ask",
+    approvalEffectId: "effect-1",
+    text: "Bot identity change requested",
+    detail: "Current name: new\nProposed name: 短答",
+    identityUpdate: {
+      botId: "bot-1",
+      beforeName: "new",
+      beforeDescription: "",
+      name: "短答",
+    },
+    status: "pending",
+    actions: [
+      { id: "allow", label: "Approve" },
+      { id: "deny", label: "Reject" },
+    ],
+  };
+  await render(block, async () => undefined, onAnswer);
+  expect(container.querySelector('[data-testid="identity-approval-card"]')).not.toBeNull();
+  expect(container.textContent).toContain("Current name: new");
+  expect(container.textContent).toContain("Proposed name: 短答");
+  expect(button("Approve")).toBeTruthy();
+  expect(button("Reject")).toBeTruthy();
+  await act(async () => button("Approve")!.click());
+  expect(onAnswer).toHaveBeenCalledWith("allow");
+});
+
 it("draws a payment's order as a receipt in place of the text detail", async () => {
   const block: AskBlock = {
     kind: "ask",

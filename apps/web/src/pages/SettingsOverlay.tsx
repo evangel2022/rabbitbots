@@ -12,7 +12,9 @@ import { ChevronLeft, ChevronRight, XIcon } from "lucide-react";
 import { useCallback, useEffect, useRef, useState } from "react";
 import { ApprovalRulesSettings } from "../components/ApprovalRulesSettings";
 import { computersAreUnavailable } from "../components/ComputersUnavailableHint";
+import { NetworkProxySettings } from "../components/NetworkProxySettings";
 import { SETTINGS_CONTENT_WIDTH, SettingsGroup, SettingsRow } from "../components/SettingsRows";
+import { UserNetworkProxySettings } from "../components/UserNetworkProxySettings";
 import { VaultSettings } from "../components/VaultSettings";
 import { canChooseOwnComputer } from "../lib/computer-sandbox";
 import { desktopBridge } from "../lib/desktop";
@@ -59,6 +61,7 @@ export function SettingsOverlay({
   sandboxProvider,
   onSandboxProviderChange,
   canConfigureComputers = false,
+  canConfigureNetworkProxy = false,
   computerSettingsEnabled = false,
   messagingEnabled = false,
   paymentWalletProvider = null,
@@ -93,6 +96,8 @@ export function SettingsOverlay({
   onSandboxProviderChange?: (sandboxProvider: string) => void;
   /** Admins choose where new computers run. */
   canConfigureComputers?: boolean;
+  /** Deployment admins configure the server-side outbound proxy. */
+  canConfigureNetworkProxy?: boolean;
   computerSettingsEnabled?: boolean;
   messagingEnabled?: boolean;
   /** The wallet this deployment lets bots spend from; none hides Wallet. */
@@ -168,6 +173,7 @@ export function SettingsOverlay({
     computer: showComputer,
     billing: billingEnabled,
     updates: showUpdates,
+    network: true,
   });
 
   useEffect(() => {
@@ -439,6 +445,18 @@ export function SettingsOverlay({
                   ) : null}
                   {section === "usage" ? (
                     <UsageSettingsPanel usage={usage} panelRef={usageRef} />
+                  ) : null}
+                  {section === "network" ? (
+                    <div className="space-y-8">
+                      <SettingsGroup title={t`My Proxy Settings`}>
+                        <UserNetworkProxySettings />
+                      </SettingsGroup>
+                      {canConfigureNetworkProxy ? (
+                        <SettingsGroup title={t`Deployment Default Proxy`}>
+                          <NetworkProxySettings />
+                        </SettingsGroup>
+                      ) : null}
+                    </div>
                   ) : null}
                   {section === "computer" && showComputer ? (
                     <ComputerSettingsPanel

@@ -1248,7 +1248,10 @@ export class McpConnector implements ConnectorProvider {
             headerPolicy: { headers },
             fallbackToSse: false,
             authProvider,
-            network: this.options.network,
+            network: {
+              ...this.options.network,
+              resolveEgressProxy: context.resolveEgressProxy,
+            },
             signal: context.signal,
           });
         try {

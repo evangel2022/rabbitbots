@@ -1,5 +1,50 @@
 import { BOT_DESCRIPTION_MAX_LENGTH, BOT_NAME_MAX_LENGTH } from "@rakazo/contracts";
 
+export type OwnBotIdentityChange = {
+  botId: string;
+  beforeName: string;
+  beforeDescription: string;
+  name?: string;
+  description?: string;
+};
+
+export const OWN_BOT_IDENTITY_KEY = "identityUpdate";
+
+export function ownBotIdentityChange(value: unknown): OwnBotIdentityChange | undefined {
+  if (!value || typeof value !== "object" || Array.isArray(value)) return undefined;
+  const row = value as Record<string, unknown>;
+  if (
+    typeof row.botId !== "string" ||
+    typeof row.beforeName !== "string" ||
+    typeof row.beforeDescription !== "string" ||
+    (row.name !== undefined && typeof row.name !== "string") ||
+    (row.description !== undefined && typeof row.description !== "string") ||
+    (row.name === undefined && row.description === undefined)
+  )
+    return undefined;
+  return {
+    botId: row.botId,
+    beforeName: row.beforeName,
+    beforeDescription: row.beforeDescription,
+    ...(row.name !== undefined ? { name: row.name } : {}),
+    ...(row.description !== undefined ? { description: row.description } : {}),
+  };
+}
+
+export function sameOwnBotIdentityChange(left: unknown, right: unknown): boolean {
+  const a = ownBotIdentityChange(left);
+  const b = ownBotIdentityChange(right);
+  return Boolean(
+    a &&
+      b &&
+      a.botId === b.botId &&
+      a.beforeName === b.beforeName &&
+      a.beforeDescription === b.beforeDescription &&
+      a.name === b.name &&
+      a.description === b.description,
+  );
+}
+
 export type UpdateBotPatch = {
   name?: string;
   description?: string;

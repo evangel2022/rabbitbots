@@ -1,7 +1,7 @@
 import { useLingui } from "@lingui/react/macro";
 import type { Bot, Group, ThreadSnapshot } from "@rakazo/contracts";
 import { BotAvatar, Button, GroupAvatar } from "@rakazo/ui-web";
-import { Gift, Menu, Monitor, Phone, Sparkles } from "lucide-react";
+import { Gift, Menu, Monitor, Phone } from "lucide-react";
 import { useState } from "react";
 import { IconTooltip } from "../../components/IconTooltip";
 import { InviteDialog } from "../../components/InviteDialog";
@@ -22,7 +22,6 @@ export function ChatHeader({
   onOpenNavigation,
   onTogglePanel,
   onCall,
-  onOpenInvestorDemo,
   onOpenComputer,
   showComputerButton = false,
 }: {
@@ -38,7 +37,6 @@ export function ChatHeader({
   onOpenNavigation: () => void;
   onTogglePanel: () => void;
   onCall: (bot: Bot) => void;
-  onOpenInvestorDemo?: () => void;
   onOpenComputer?: () => void;
   showComputerButton?: boolean;
 }) {
@@ -108,19 +106,6 @@ export function ChatHeader({
               <Monitor strokeWidth={1.6} className="size-[17px]" />
             </Button>
           </IconTooltip>
-        ) : null}
-        {onOpenInvestorDemo ? (
-          <Button
-            variant="floating"
-            size="sm"
-            onClick={onOpenInvestorDemo}
-            aria-label={t`Investor demo`}
-            data-testid="investor-demo-header"
-            className="app-no-drag gap-1.5"
-          >
-            <Sparkles strokeWidth={1.7} className="size-[15px]" />
-            <span className="hidden md:inline">{t`Investor demo`}</span>
-          </Button>
         ) : null}
         {phoneCallsEnabled && !inGroup && active ? (
           <IconTooltip label={inCall ? t`Open call` : t`Call`}>

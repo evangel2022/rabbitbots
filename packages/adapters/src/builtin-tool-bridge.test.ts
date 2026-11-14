@@ -6,8 +6,18 @@ import {
   partitionTools,
   USE_TOOL,
 } from "./builtin-tool-bridge.js";
+import { builtinAgentTools } from "./builtin-tools.js";
 import { describeToolActivity } from "./pi-runtime-tools.js";
 import { BUILTIN_AGENT_TOOL_NAMES, selectBuiltinToolsForRun } from "./run-tool-selection.js";
+
+it("describes identity changes as requiring explicit human approval", () => {
+  const updateBot = builtinAgentTools.find((tool) => tool.name === "update_bot")!;
+  expect(updateBot.description).toContain("explicit human approval");
+  expect(updateBot.description).toContain("Never change your own name or description");
+  expect(updateBot.description).not.toContain(
+    "setting your name, description and first instructions",
+  );
+});
 
 const ownerChat = selectBuiltinToolsForRun({
   graphicalToolsAllowed: false,

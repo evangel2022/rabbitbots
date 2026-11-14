@@ -70,7 +70,7 @@ const [starsLabel, desktopDownloads, recentChanges] = await Promise.all([
   fetchDesktopDownloads(),
   fetchRecentChanges(5),
 ]);
-const setupAgentPrompt = `Set up Rakazo for me. Follow the setup prompt at ${SETUP_PROMPT_URL}`;
+const setupAgentPrompt = `Set up RabbitBots for me. Follow the setup prompt at ${SETUP_PROMPT_URL}`;
 const desktopPlatforms = availableDesktopPlatforms(desktopDownloads);
 const PLATFORM_NAMES = { mac: "macOS", windows: "Windows", linux: "Linux" } as const;
 const PROVIDER_LOGOS: Record<string, string> = {
@@ -169,6 +169,30 @@ const structuredData = homeStructuredData({
               <path d="M16 8V6a2 2 0 0 0-2-2H6a2 2 0 0 0-2 2v8a2 2 0 0 0 2 2h2"></path>
             </svg>
           </button>
+        </div>
+      </section>
+
+      <section id="ai-company" class="section">
+        <div class="section-intro">
+          <div class="eyebrow">Build your AI company</div>
+          <h2 class="section-heading">Hire the team. Run the company.</h2>
+          <p class="section-copy">
+            Three product surfaces turn AI from a chat into an operating company.
+          </p>
+        </div>
+        <div class="card-grid-3">
+          <article class="feature-card">
+            <h3>Executive Boardroom</h3>
+            <p>AI executives meet on an agenda, disagree with reasons, and produce a decision for human CEO approval.</p>
+          </article>
+          <article class="feature-card">
+            <h3>AI Workforce</h3>
+            <p>Approved decisions become real tasks with owners, attempts, evidence, failures and CEO acceptance.</p>
+          </article>
+          <article class="feature-card">
+            <h3>Autonomous Delegation</h3>
+            <p>Employees delegate work, wait durably, and resume when results arrive. Timeouts and late results stay visible.</p>
+          </article>
         </div>
       </section>
 

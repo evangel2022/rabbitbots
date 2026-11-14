@@ -47,6 +47,18 @@ describe("model context budget", () => {
     expect(selected.estimatedInputTokens).toBeLessThan(budget.contextWindow - budget.outputReserve);
   });
 
+  it("does not offer ask_user to a boardroom turn", () => {
+    const names = selectBuiltinToolsForRun({
+      historyRetrievalEnabled: true,
+      graphicalToolsAllowed: false,
+      groupId: null,
+      trigger: "meeting_turn",
+      semanticMemoryEnabled: false,
+      messagingChannelRun: false,
+    }).map((tool) => tool.name);
+    expect(names).not.toContain("ask_user");
+  });
+
   it("still refuses an 8k window the same tools cannot fit", () => {
     expect(() =>
       selectContext([{ role: "user", content: "hi" }], {

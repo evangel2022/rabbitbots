@@ -104,6 +104,12 @@ vi.mock("../components/VaultSettings", () => ({ VaultSettings: recordScope("vaul
 vi.mock("../components/ComputersUnavailableHint", () => ({
   computersAreUnavailable: () => false,
 }));
+vi.mock("../components/NetworkProxySettings", () => ({
+  NetworkProxySettings: () => <div data-testid="network-proxy" />,
+}));
+vi.mock("../components/UserNetworkProxySettings", () => ({
+  UserNetworkProxySettings: () => <div data-testid="user-network-proxy" />,
+}));
 
 import { SettingsOverlay } from "./SettingsOverlay";
 
@@ -316,6 +322,35 @@ it("offers Wallet only when the deployment has a wallet provider", async () => {
     await rerender({ section: "wallet", paymentWalletProvider: { id: "link", name: "Link" } });
     expect(container.querySelector('[data-testid="settings-nav-wallet"]')).not.toBeNull();
     expect(shown()).toBe("wallet");
+  } finally {
+    await cleanup();
+  }
+});
+
+it("offers every account its own Network & Proxy page", async () => {
+  const { container, cleanup } = await render({ section: "network" });
+  try {
+    const nav = container.querySelector<HTMLButtonElement>('[data-testid="settings-nav-network"]');
+    expect(nav?.textContent).toContain("Network & Proxy");
+    expect(
+      container.querySelector("[data-settings-section]")?.getAttribute("data-settings-section"),
+    ).toBe("network");
+    expect(container.querySelector("h2")?.textContent).toBe("Network & Proxy");
+    expect(container.querySelector('[data-testid="user-network-proxy"]')).not.toBeNull();
+    expect(container.querySelector('[data-testid="network-proxy"]')).toBeNull();
+  } finally {
+    await cleanup();
+  }
+});
+
+it("adds the deployment default proxy only for Deployment Admins", async () => {
+  const { container, cleanup } = await render({
+    section: "network",
+    canConfigureNetworkProxy: true,
+  });
+  try {
+    expect(container.querySelector('[data-testid="user-network-proxy"]')).not.toBeNull();
+    expect(container.querySelector('[data-testid="network-proxy"]')).not.toBeNull();
   } finally {
     await cleanup();
   }

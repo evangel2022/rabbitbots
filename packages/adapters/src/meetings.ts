@@ -21,6 +21,7 @@ import type {
   MeetingView,
 } from "@rakazo/contracts";
 import {
+  AI_COMPANY_DEMO_AGENDA,
   MEETING_DECISION_TYPES,
   MEETING_DISCUSSION_STATES,
   MEETING_MAX_DISCUSSION_ROUNDS,
@@ -30,9 +31,17 @@ import { ACTIVE_RUN_STATUSES } from "@rakazo/core";
 import type { PrismaClient } from "@rakazo/db";
 import { cancelRunsInTransaction, isUniqueViolation } from "@rakazo/db";
 import { getLogger } from "@rakazo/logging";
-import { createUnifiedAttempt, updateUnifiedAttempt } from "./execution-attempts.js";
+import { updateUnifiedAttempt } from "./execution-attempts.js";
 import { readRunOutcome } from "./orchestration.js";
-import { reconcileActiveWorkforceTasks } from "./workforce-tasks.js";
+import {
+  createDirectWorkforceTask,
+  createMeetingActionWorkforceTask,
+  DEMO_DELEGATION_MARKER,
+  executeWorkforceTask,
+  getWorkforceTaskView,
+  reconcileActiveWorkforceTasks,
+  startWorkforceExecutionInTransaction,
+} from "./workforce-tasks.js";
 
 /**
  * Executive Boardroom. The state machine is deterministic and persisted; the model only writes a
@@ -779,6 +788,85 @@ async function loadActionForView(prisma: PrismaClient, actionItemId: string) {
  * current attempt. A repeated call returns the existing attempt and never starts a
  * second Task.
  */
+function isDemoDelegationAction(action: {
+  meeting: { description: string };
+  decision: { agenda: { title: string } | null } | null;
+}): boolean {
+  return (
+    action.meeting.description.startsWith("RabbitBots demo ·") &&
+    action.decision?.agenda?.title === AI_COMPANY_DEMO_AGENDA[1]
+  );
+}
+
+async function startDemoDelegationAction(
+  deps: MeetingDeps,
+  input: { spaceId: string; userId: string; meetingId: string; actionItemId: string },
+  action: {
+    id: string;
+    title: string;
+    description: string | null;
+    acceptanceCriteria: string | null;
+    assigneeBotId: string | null;
+  },
+): Promise<MeetingActionItemView> {
+  if (!action.assigneeBotId) throw new Error("The demo action has no Bot owner.");
+  const existing = await deps.prisma.workforceTask.findFirst({
+    where: { spaceId: input.spaceId, parentMeetingActionId: action.id },
+    select: { id: true },
+  });
+  let parent = existing
+    ? await getWorkforceTaskView(deps.prisma, input.spaceId, existing.id)
+    : null;
+  if (!parent) {
+    const marker =
+      DEMO_DELEGATION_MARKER +
+      "\n\nDeveloper Demo parent task. Review the real Child research result and produce a concise GitHub launch execution recommendation. Do not treat a failed or blocked child as success.";
+    const created = await createDirectWorkforceTask(deps.prisma, {
+      spaceId: input.spaceId,
+      userId: input.userId,
+      title: action.title,
+      description: marker,
+      acceptanceCriteria:
+        action.acceptanceCriteria ||
+        "A real child task is completed, its result and evidence are reviewed, and the parent recommendation is returned without claiming CEO acceptance.",
+      assigneeBotId: action.assigneeBotId,
+      priority: "HIGH",
+      parentMeetingActionId: action.id,
+    });
+    parent = await executeWorkforceTask(
+      { prisma: deps.prisma, jobs: deps.jobs },
+      {
+        spaceId: input.spaceId,
+        userId: input.userId,
+        taskId: created.id,
+        clientNonce: `demo-delegation:${action.id}`,
+      },
+    );
+  } else if (parent.attempts.length === 0) {
+    parent = await executeWorkforceTask(
+      { prisma: deps.prisma, jobs: deps.jobs },
+      {
+        spaceId: input.spaceId,
+        userId: input.userId,
+        taskId: parent.id,
+        clientNonce: `demo-delegation:${action.id}`,
+      },
+    );
+  }
+  const attempt = parent.attempts.at(-1);
+  await deps.prisma.meetingActionItem.update({
+    where: { id: action.id },
+    data: {
+      status: "IN_PROGRESS",
+      executionAttempt: parent.attempts.length,
+      taskId: attempt?.taskId ?? null,
+      botRunId: attempt?.botRunId ?? null,
+      startedAt: new Date(),
+    },
+  });
+  return loadActionForView(deps.prisma, action.id);
+}
+
 export async function executeMeetingAction(
   deps: MeetingDeps,
   input: {
@@ -793,6 +881,7 @@ export async function executeMeetingAction(
   const action = await deps.prisma.meetingActionItem.findFirst({
     where: { id: input.actionItemId, meetingId: input.meetingId },
     include: {
+      meeting: { select: { description: true } },
       decision: {
         select: {
           approvalStatus: true,
@@ -818,50 +907,117 @@ export async function executeMeetingAction(
   }
   if (!action.assigneeBotId)
     throw new Error("This action is assigned to a human owner and cannot start a Bot run.");
-  if (!action.activatedAt) {
-    await deps.prisma.meetingActionItem.update({
-      where: { id: action.id },
-      data: { activatedAt: new Date() },
-    });
-  }
   if (action.status === "COMPLETED" || action.status === "BLOCKED") {
     throw new Error("This action is already complete or blocked.");
   }
-  if (action.taskId && action.botRunId) {
-    return loadActionForView(deps.prisma, action.id);
+  if (isDemoDelegationAction(action)) {
+    return startDemoDelegationAction(deps, input, action);
   }
-  const bot = await deps.prisma.bot.findFirst({
-    where: { id: action.assigneeBotId, spaceId: input.spaceId, archivedAt: null },
-    select: { id: true, name: true, description: true, thread: { select: { id: true } } },
-  });
-  if (!bot?.thread) throw new Error("The assigned Bot has no execution thread.");
-  const participant = await deps.prisma.meetingParticipant.findFirst({
-    where: { meetingId: input.meetingId, botId: bot.id },
-    select: { threadId: true, role: true },
-  });
-  const threadId = participant?.threadId ?? bot.thread.id;
-  const attempt = action.executionAttempt + 1;
-  const clientNonce = `meeting-action:${action.id}:${attempt}`;
-  const existingRun = await deps.prisma.run.findUnique({
-    where: { spaceId_clientNonce: { spaceId: input.spaceId, clientNonce } },
-    select: { id: true, taskId: true },
-  });
-  if (existingRun) {
-    await deps.prisma.meetingActionItem.update({
-      where: { id: action.id },
-      data: {
-        status: "IN_PROGRESS",
-        executionAttempt: attempt,
-        taskId: existingRun.taskId,
-        botRunId: existingRun.id,
-        startedAt: action.startedAt ?? new Date(),
+  const outcome = await deps.prisma.$transaction(async (tx) => {
+    await tx.$queryRaw`SELECT id FROM meeting_action_items WHERE id = ${action.id} FOR UPDATE`;
+    const current = await tx.meetingActionItem.findFirst({
+      where: { id: action.id, meetingId: input.meetingId },
+      select: {
+        id: true,
+        status: true,
+        taskId: true,
+        botRunId: true,
+        executionAttempt: true,
+        startedAt: true,
+        acceptanceStatus: true,
+        assigneeBotId: true,
+        assigneeUserId: true,
+        activatedAt: true,
       },
     });
-    await enqueueRun(deps.jobs, existingRun.id);
-    await deps.jobs.enqueue(meetingActionReconcileJob(action.id)).catch(() => undefined);
-    return loadActionForView(deps.prisma, action.id);
-  }
-  const prompt = `You are the ${participant?.role || bot.name} executing ONE approved executive meeting action.
+    if (!current) throw new Error("Action item not found for this meeting.");
+    if (!action.decision) throw new Error("Action item has no decision.");
+    const approvedInside =
+      action.decision.approvalStatus === "APPROVED" ||
+      (action.decision.approvalStatus === "APPROVED_WITH_CONDITIONS" &&
+        Boolean(action.decision.conditionsConfirmedAt));
+    if (!approvedInside) {
+      throw new Error(
+        "This action belongs to a decision that is not CEO-approved or whose conditions are not confirmed.",
+      );
+    }
+    if (!current.assigneeBotId) {
+      throw new Error("This action is assigned to a human owner and cannot start a Bot run.");
+    }
+    if (current.status === "COMPLETED" || current.status === "BLOCKED") {
+      throw new Error("This action is already complete or blocked.");
+    }
+
+    const bot = await tx.bot.findFirst({
+      where: { id: current.assigneeBotId, spaceId: input.spaceId, archivedAt: null },
+      select: { id: true, name: true, thread: { select: { id: true } } },
+    });
+    if (!bot?.thread) throw new Error("The assigned Bot has no execution thread.");
+    const participant = await tx.meetingParticipant.findFirst({
+      where: { meetingId: input.meetingId, botId: bot.id },
+      select: { threadId: true, role: true },
+    });
+    const threadId = participant?.threadId ?? bot.thread.id;
+    const forceNewAttempt = current.acceptanceStatus === "RE_EXECUTE_REQUESTED";
+
+    const existingParent = await tx.workforceTask.findFirst({
+      where: { spaceId: input.spaceId, parentMeetingActionId: current.id },
+      select: {
+        id: true,
+        spaceId: true,
+        status: true,
+        executionAttempt: true,
+        taskId: true,
+        botRunId: true,
+        startedAt: true,
+        assigneeBotId: true,
+      },
+    });
+    if (existingParent) {
+      await tx.$queryRaw`SELECT id FROM workforce_tasks WHERE id = ${existingParent.id} FOR UPDATE`;
+    }
+
+    if (!forceNewAttempt && current.taskId && current.botRunId && !existingParent) {
+      return { existing: true as const, runId: current.botRunId };
+    }
+
+    let parent = existingParent;
+    if (!parent) {
+      parent = await createMeetingActionWorkforceTask(tx, {
+        spaceId: input.spaceId,
+        userId: input.userId,
+        actionItemId: current.id,
+        title: action.title,
+        description: action.description ?? "",
+        acceptanceCriteria: action.acceptanceCriteria ?? "",
+        assigneeBotId: current.assigneeBotId,
+        dueAt: action.dueAt,
+      });
+      await tx.$queryRaw`SELECT id FROM workforce_tasks WHERE id = ${parent.id} FOR UPDATE`;
+    }
+
+    if (!forceNewAttempt && parent.taskId && parent.botRunId) {
+      await tx.meetingActionItem.update({
+        where: { id: current.id },
+        data: {
+          status: "IN_PROGRESS",
+          executionAttempt: parent.executionAttempt,
+          taskId: parent.taskId,
+          botRunId: parent.botRunId,
+          startedAt: parent.startedAt ?? current.startedAt ?? new Date(),
+        },
+      });
+      return { existing: true as const, runId: parent.botRunId };
+    }
+
+    if (!current.activatedAt) {
+      await tx.meetingActionItem.update({
+        where: { id: current.id },
+        data: { activatedAt: new Date() },
+      });
+    }
+
+    const prompt = `You are the ${participant?.role || bot.name} executing ONE approved executive meeting action.
 
 Meeting action: ${action.title}
 Description: ${action.description || "(none)"}
@@ -882,83 +1038,38 @@ When finished, return ONE JSON object only:
   "acceptanceCriteriaCheck": "how the acceptance criterion was or was not met"
 }
 Never report SUCCESS without describing the work and at least one verifiable evidence reference where one exists.`;
-  const task = await deps.prisma.task.create({
-    data: {
-      spaceId: input.spaceId,
-      botId: bot.id,
-      threadId,
+
+    const started = await startWorkforceExecutionInTransaction(tx, {
+      task: parent,
+      bot: { id: bot.id, threadId },
       userId: input.userId,
       prompt,
-      status: "queued",
-    },
-    select: { id: true },
-  });
-  let runId: string;
-  try {
-    const run = await deps.prisma.run.create({
+      runTrigger: "meeting_action",
+      meetingAction: { meetingId: input.meetingId, actionId: current.id },
+    });
+    await tx.meetingActionItem.update({
+      where: { id: current.id },
       data: {
-        spaceId: input.spaceId,
-        botId: bot.id,
-        threadId,
-        taskId: task.id,
-        userId: input.userId,
-        status: "queued",
-        trigger: "meeting_action",
-        clientNonce,
-        maxOutputTokens: 3_000,
+        status: "IN_PROGRESS",
+        executionAttempt: started.attemptNumber,
+        taskId: started.taskId,
+        botRunId: started.runId,
+        startedAt: current.startedAt ?? new Date(),
+        completedAt: null,
+        resultStatus: null,
+        resultSummary: null,
+        evidence: [],
+        blockedReason: null,
+        acceptanceStatus: null,
       },
-      select: { id: true },
     });
-    runId = run.id;
-  } catch (error) {
-    if (!isUniqueViolation(error)) throw error;
-    const raced = await deps.prisma.run.findUniqueOrThrow({
-      where: { spaceId_clientNonce: { spaceId: input.spaceId, clientNonce } },
-      select: { id: true },
-    });
-    runId = raced.id;
+    return { existing: false as const, runId: started.runId };
+  });
+
+  if (!outcome.existing) {
+    await enqueueRun(deps.jobs, outcome.runId);
+    await deps.jobs.enqueue(meetingActionReconcileJob(action.id)).catch(() => undefined);
   }
-  const legacyAttempt = await deps.prisma.meetingActionAttempt.create({
-    data: {
-      meetingId: input.meetingId,
-      actionItemId: action.id,
-      attemptNumber: attempt,
-      taskId: task.id,
-      botRunId: runId,
-      status: "RUNNING",
-      startedAt: new Date(),
-    },
-    select: { id: true },
-  });
-  await createUnifiedAttempt(deps.prisma, {
-    id: `ux-meeting:${legacyAttempt.id}`,
-    spaceId: input.spaceId,
-    sourceType: "MEETING_ACTION",
-    sourceId: action.id,
-    meetingActionId: action.id,
-    taskId: task.id,
-    runId,
-    attemptNumber: attempt,
-    status: "RUNNING",
-  });
-  await deps.prisma.meetingActionItem.update({
-    where: { id: action.id },
-    data: {
-      status: "IN_PROGRESS",
-      executionAttempt: attempt,
-      taskId: task.id,
-      botRunId: runId,
-      startedAt: new Date(),
-      completedAt: null,
-      resultStatus: null,
-      resultSummary: null,
-      evidence: [],
-      blockedReason: null,
-      acceptanceStatus: null,
-    },
-  });
-  await enqueueRun(deps.jobs, runId);
-  await deps.jobs.enqueue(meetingActionReconcileJob(action.id)).catch(() => undefined);
   return loadActionForView(deps.prisma, action.id);
 }
 
@@ -967,11 +1078,82 @@ export async function reconcileMeetingAction(
   deps: MeetingDeps,
   actionItemId: string,
 ): Promise<void> {
-  const action = await deps.prisma.meetingActionItem.findUnique({
+  let action = await deps.prisma.meetingActionItem.findUnique({
     where: { id: actionItemId },
-    select: { id: true, status: true, botRunId: true, executionAttempt: true },
+    select: {
+      id: true,
+      meetingId: true,
+      status: true,
+      botRunId: true,
+      taskId: true,
+      executionAttempt: true,
+    },
   });
-  if (!action?.botRunId || action.status !== "IN_PROGRESS") return;
+  if (!action?.botRunId) return;
+  const currentAction = action;
+  // A delegated parent continues in a new Run. Keep the meeting action pointed at the
+  // parent's active/current run so its continuation result is the one the CEO reviews.
+  const parent = await deps.prisma.workforceTask.findFirst({
+    where: { parentMeetingActionId: currentAction.id },
+    select: {
+      botRunId: true,
+      taskId: true,
+      waitingForChildren: true,
+      executionAttempt: true,
+    },
+  });
+  if (parent?.waitingForChildren) return;
+  if (parent?.botRunId && parent.botRunId !== currentAction.botRunId) {
+    const nextActionAttempt = Math.max(currentAction.executionAttempt + 1, parent.executionAttempt);
+    await deps.prisma.$transaction(async (tx) => {
+      await tx.meetingActionAttempt.upsert({
+        where: {
+          actionItemId_attemptNumber: {
+            actionItemId: currentAction.id,
+            attemptNumber: nextActionAttempt,
+          },
+        },
+        create: {
+          meetingId: currentAction.meetingId,
+          actionItemId: currentAction.id,
+          attemptNumber: nextActionAttempt,
+          taskId: parent.taskId,
+          botRunId: parent.botRunId,
+          status: "RUNNING",
+          startedAt: new Date(),
+        },
+        update: {
+          taskId: parent.taskId,
+          botRunId: parent.botRunId,
+          status: "RUNNING",
+          completedAt: null,
+        },
+      });
+      await tx.meetingActionItem.update({
+        where: { id: currentAction.id },
+        data: {
+          status: "IN_PROGRESS",
+          executionAttempt: nextActionAttempt,
+          taskId: parent.taskId,
+          botRunId: parent.botRunId,
+          startedAt: new Date(),
+          completedAt: null,
+          resultStatus: null,
+          resultSummary: null,
+          evidence: [],
+          blockedReason: null,
+          acceptanceStatus: null,
+        },
+      });
+    });
+    action = {
+      ...action,
+      status: "IN_PROGRESS",
+      botRunId: parent.botRunId,
+      executionAttempt: nextActionAttempt,
+    };
+  }
+  if (action.status !== "IN_PROGRESS" || !action.botRunId) return;
   const run = await deps.prisma.run.findUnique({ where: { id: action.botRunId } });
   if (!run) return;
   if (ACTIVE_RUN_STATUSES.includes(run.status as never)) {
@@ -1104,6 +1286,59 @@ export async function assignMeetingAction(
  * CEO acceptance. This changes only the action's acceptance/execution fields and
  * writes an immutable acceptance row; it never changes the decision approval.
  */
+function parentAcceptanceUpdate(
+  action: MeetingActionAcceptanceAction,
+  comment: string | null,
+  now: Date,
+): Record<string, unknown> | undefined {
+  if (action === "ACCEPT") {
+    // Parent execution completion belongs to the continuation Run, not the later CEO action.
+    return { status: "COMPLETED", acceptanceStatus: "ACCEPTED" };
+  }
+  if (action === "REJECT") {
+    return {
+      status: "BLOCKED",
+      acceptanceStatus: "REJECTED",
+      blockedReason: comment,
+      completedAt: now,
+    };
+  }
+  if (action === "BLOCK") {
+    return {
+      status: "BLOCKED",
+      acceptanceStatus: "BLOCKED",
+      blockedReason: comment,
+      completedAt: now,
+    };
+  }
+  if (action === "CANCEL") {
+    return {
+      status: "BLOCKED",
+      acceptanceStatus: "CANCELLED",
+      blockedReason: comment,
+      completedAt: now,
+    };
+  }
+  return undefined;
+}
+
+async function syncParentAcceptance(
+  prisma: PrismaClient,
+  actionItemId: string,
+  action: MeetingActionAcceptanceAction,
+  comment: string | null,
+  now: Date,
+): Promise<void> {
+  const data = parentAcceptanceUpdate(action, comment, now);
+  if (!data) return;
+  const parent = await prisma.workforceTask.findFirst({
+    where: { parentMeetingActionId: actionItemId },
+    select: { id: true },
+  });
+  if (!parent) return;
+  await prisma.workforceTask.update({ where: { id: parent.id }, data });
+}
+
 export async function acceptMeetingAction(
   prisma: PrismaClient,
   input: {
@@ -1142,6 +1377,7 @@ export async function acceptMeetingAction(
     if (existing.action !== input.action || (existing.comment ?? null) !== comment) {
       throw new Error("This acceptance retry conflicts with the recorded acceptance.");
     }
+    await syncParentAcceptance(prisma, action.id, input.action, comment, new Date());
     return loadActionForView(prisma, action.id);
   }
   const actor = await prisma.user.findUnique({
@@ -1194,6 +1430,7 @@ export async function acceptMeetingAction(
               blockedReason: comment ?? (input.action === "CANCEL" ? "Cancelled by CEO." : null),
               completedAt: now,
             };
+  const parentAcceptance = parentAcceptanceUpdate(input.action, comment, now);
   const result = await prisma.$transaction(async (tx) => {
     const acceptance = await tx.meetingActionAcceptance.create({
       data: {
@@ -1207,6 +1444,18 @@ export async function acceptMeetingAction(
       },
     });
     await tx.meetingActionItem.update({ where: { id: action.id }, data: update });
+    if (parentAcceptance) {
+      const parent = await tx.workforceTask.findFirst({
+        where: { parentMeetingActionId: action.id },
+        select: { id: true },
+      });
+      if (parent) {
+        await tx.workforceTask.update({
+          where: { id: parent.id },
+          data: parentAcceptance,
+        });
+      }
+    }
     return acceptance;
   });
   void result;
@@ -3688,7 +3937,7 @@ Return ONLY valid JSON:
   "discussionState": "AGREEMENT" | "DISAGREEMENT" | "INSUFFICIENT_EVIDENCE" | "UNRESOLVED"
 }
 
-Rules: if the evidence is insufficient, use DEFERRED and discussionState INSUFFICIENT_EVIDENCE rather than inventing a conclusion. Distinguish supporting opinions from dissenting opinions and list concrete evidence gaps. Any APPROVED or APPROVED_WITH_CONDITIONS is a recommendation requiring the human owner's approval; do not claim human approval. Do not combine agendas. Do not invent action items or due dates here.`;
+Rules: separate FACT, ASSUMPTION and OPEN QUESTION. If external evidence is missing but project facts plus clearly labelled assumptions support a bounded recommendation, use APPROVED_WITH_CONDITIONS and put the validation requirements in conditions; do not use DEFERRED merely because a market, audience or channel metric is absent. Use DEFERRED only when no safe recommendation can be made. Make decisionText cover the core question, key facts, assumptions and evidence gaps, participant opinions, the recommendation and its conditions, and what the human CEO must decide. Distinguish supporting opinions from dissenting opinions and list concrete evidence gaps. Any APPROVED or APPROVED_WITH_CONDITIONS is a recommendation requiring the human owner's approval; do not claim human approval. Do not combine agendas. Do not invent action items or due dates here.`;
 }
 
 function meetingSummaryPrompt(
@@ -3723,21 +3972,21 @@ Objective: ${meeting.description}
 Persisted agenda decisions:
 ${lines}
 
-Return ONLY valid JSON:
+Return ONLY valid JSON. Put actionItems FIRST and keep the prose concise enough to fit one response:
 {
-  "summary": "executive summary that references every agenda decision",
-  "minutes": "meeting minutes distinguishing agreements, dissent, evidence, risks and unresolved matters",
   "actionItems": [
     {
-      "title": "...",
-      "description": "...",
-      "assigneeRole": "Research" | "Finance" | "Chairperson",
+      "title": "one concrete action",
+      "description": "what the Bot should do, including the relevant condition",
+      "assigneeRole": "Research" | "Finance" | "Operations" | "Chairperson",
       "agendaSequence": 1,
       "acceptanceCriteria": "how completion will be verified",
       "dueAt": null
     }
-  ]
+  ],
+  "summary": "executive summary under 180 words that references every agenda decision",
+  "minutes": "meeting minutes under 350 words distinguishing agreements, dissent, evidence, risks and unresolved matters"
 }
 
-Rules: reference all decisions and do not fabricate a sixth decision. Specify a concrete acceptance criterion for every action. Do not fabricate due dates; use null unless a date was specified. Any approved recommendation remains pending human approval. Do not execute external actions.`;
+Rules: reference all decisions and do not fabricate a sixth decision. For every APPROVED or APPROVED_WITH_CONDITIONS decision, include at least one concrete action with a named assignee role and an acceptance criterion. Prefer at most one action per agenda. Do not fabricate due dates; use null unless a date was specified. Any approved recommendation remains pending human approval. Do not execute external actions.`;
 }

@@ -33,6 +33,7 @@ import {
   createRunSandbox,
   createRunSecretWriter,
   createTicketChangeNotifier,
+  createUserProxyModelFetchResolver,
   databaseCapacityBackoffMs,
   ExpoPushProvider,
   GraphileJobPublisher,
@@ -40,6 +41,7 @@ import {
   InMemoryJobQueue,
   installedMessaging,
   isMessagingSurfaceEnabled,
+  loadAndApplyOutboundProxy,
   messagingEnvFromProcess,
   messagingPlatformsFromEnv,
   PiAgentRuntime,
@@ -48,6 +50,7 @@ import {
   RunJobPublisher,
   RunStarter,
   RunWorkerHost,
+  reconcileActiveWorkforceTasks,
   resolvePiSessionRoot,
   resolveSandboxProvider,
   runRuntimeEnvFromProcess,
@@ -121,6 +124,14 @@ async function main() {
   prisma = withSecretPersistence(prisma, secrets);
   installSecurityEventStore(prisma);
   installAuditEventStore(prisma);
+  // Apply the admin's saved outbound proxy before any model or web egress starts.
+  await loadAndApplyOutboundProxy(prisma, secrets);
+  const proxyRefresh = setInterval(() => {
+    void loadAndApplyOutboundProxy(prisma, secrets).catch((error) => {
+      logger.error("deployment outbound proxy refresh failed", error);
+    });
+  }, 30_000);
+  proxyRefresh.unref();
   const unreadableMasterKeys = await verifyContentKeys(prisma);
   if (unreadableMasterKeys.length)
     logger.error("Stored space keys need master keys that are not configured", undefined, {
@@ -136,7 +147,10 @@ async function main() {
   const runtime =
     process.env.AGENT_RUNTIME === "scripted"
       ? new ScriptedAgentRuntime()
-      : new PiAgentRuntime({ sessionRoot: resolvePiSessionRoot(env.dataDir) });
+      : new PiAgentRuntime({
+          modelFetchForRun: createUserProxyModelFetchResolver(prisma, secrets),
+          sessionRoot: resolvePiSessionRoot(env.dataDir),
+        });
   const sandboxProvider = resolveSandboxProvider(process.env);
   const sandbox = await createRunSandbox(sandboxProvider, {
     ...sandboxProviderOptionsFromEnv(process.env),
@@ -262,6 +276,7 @@ async function main() {
     },
   );
   let stopHealth: (() => Promise<void>) | undefined;
+  let workforceSweep: ReturnType<typeof setInterval> | undefined;
   let stopping = false;
   let stopped: Promise<void> | undefined;
   // Every caller waits for the same shutdown, which can take as long as the running jobs do.
@@ -272,6 +287,8 @@ async function main() {
       stopStallWatch();
       try {
         await stopHealth?.();
+        clearInterval(proxyRefresh);
+        if (workforceSweep) clearInterval(workforceSweep);
         await reconciler.stop();
         await jobHost.stop();
         // A bot's email still on its way finishes before the process exits.
@@ -340,6 +357,13 @@ async function main() {
   }
   if (stopping) return;
   reconciler.start();
+  const sweepWorkforce = () =>
+    runAsSystem("workforce delegation reconciliation", () =>
+      reconcileActiveWorkforceTasks({ prisma, jobs }, { staleAfterMs: 60_000 }),
+    ).catch((error) => logger.error("workforce delegation reconciliation", error));
+  workforceSweep = setInterval(sweepWorkforce, 60_000);
+  workforceSweep.unref?.();
+  void sweepWorkforce();
   stopHealth = startWorkerHealth(reconciler.lastCompletedAt);
 
   logger.info("worker ready", { degraded: secrets.describe().capabilities.degraded ?? false });

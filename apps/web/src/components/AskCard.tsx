@@ -155,7 +155,10 @@ function PromptAskCard({ block, canAnswer, onAnswer, rpc = selectedSpaceRpc }: A
       )
     : askActions;
   const optionQuestion =
-    !approvalActions && !block.instructionUpdate && Boolean(askActions?.length);
+    !approvalActions &&
+    !block.instructionUpdate &&
+    !block.identityUpdate &&
+    Boolean(askActions?.length);
   const chosenOption =
     answered && displayedAnswer ? resolveAskChoice(displayedAnswer, askActions) : undefined;
   // An edited draft is shown in the user's words, so the card reads as answered. A typed reply to
@@ -165,6 +168,7 @@ function PromptAskCard({ block, canAnswer, onAnswer, rpc = selectedSpaceRpc }: A
     !optionQuestion &&
     !approvalActions &&
     !block.instructionUpdate &&
+    !block.identityUpdate &&
     displayedAnswer !== "approved"
       ? displayedAnswer
       : undefined;
@@ -236,7 +240,13 @@ function PromptAskCard({ block, canAnswer, onAnswer, rpc = selectedSpaceRpc }: A
 
   return (
     <BuiCard
-      data-testid={block.instructionUpdate ? "instruction-approval-card" : undefined}
+      data-testid={
+        block.instructionUpdate
+          ? "instruction-approval-card"
+          : block.identityUpdate
+            ? "identity-approval-card"
+            : undefined
+      }
       className="w-full min-w-0 max-w-xl px-5 py-4"
     >
       <div className="text-body-lg leading-[1.5] text-foreground">
@@ -314,12 +324,16 @@ function PromptAskCard({ block, canAnswer, onAnswer, rpc = selectedSpaceRpc }: A
             ? displayedAnswer === "deny"
               ? t`Dismissed`
               : t`Allowed once`
-            : formatAnsweredState(
-                displayedAnswer,
-                Boolean(approvalActions),
-                approvalActions?.find((action) => action.id === displayedAnswer)?.outcome,
-                askActions,
-              )}
+            : block.identityUpdate
+              ? displayedAnswer === "deny"
+                ? t`Rejected`
+                : t`Approved`
+              : formatAnsweredState(
+                  displayedAnswer,
+                  Boolean(approvalActions),
+                  approvalActions?.find((action) => action.id === displayedAnswer)?.outcome,
+                  askActions,
+                )}
         </div>
       ) : !canAnswer ? (
         <div className="mt-3.5 text-body font-medium text-muted-foreground">
@@ -349,6 +363,12 @@ function PromptAskCard({ block, canAnswer, onAnswer, rpc = selectedSpaceRpc }: A
                   t`Apply`
                 ) : (
                   t`Dismiss`
+                )
+              ) : block.identityUpdate ? (
+                action.id === "allow" ? (
+                  t`Approve`
+                ) : (
+                  t`Reject`
                 )
               ) : (
                 approvalActionLabel(action.id, action.label, action.outcome, block.site)

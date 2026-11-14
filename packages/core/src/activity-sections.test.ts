@@ -53,6 +53,13 @@ it("puts each conversation in one section", () => {
   expect(sections.recent).toEqual([done]);
 });
 
+it("classifies a created run by status, not by its creation trigger", () => {
+  const queued = { ...run("new-bot", "queued"), trigger: "created" };
+  const waiting = { ...run("new-bot", "waiting_input"), trigger: "created" };
+  expect(activityAttention(queued)).toBe("working");
+  expect(activityAttention(waiting)).toBe("needs_attention");
+});
+
 it("judges a chat by its latest run only", () => {
   const sections = activitySections({
     active: [],

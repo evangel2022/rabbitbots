@@ -1659,7 +1659,7 @@ export const builtinAgentTools: ConnectorTool[] = [
   {
     name: "update_bot",
     description:
-      "Read or change your own settings. Call with no fields to read them and the models and thinking levels you can pick. Long instructions come in pages; follow instructionsNextOffset before replacing them. If a read comes back with contextTruncated, it was shortened: say so, do not rewrite. Pass fields to change them, only when the user asks; setting your name, description and first instructions when you have none is fine. Never claim a change without calling this.",
+      "Read or change your own settings. Call with no fields to read them. Instructions are paged; follow instructionsNextOffset. If contextTruncated, say so; do not rewrite. Pass fields to change them only when the user asks. Never change your own name or description from inferred role/style; only an explicit identity request may propose one, and it needs explicit human approval. Style requests adjust behavior, not identity. Never claim a change without the tool.",
     inputSchema: {
       type: "object",
       properties: {

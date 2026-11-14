@@ -6,6 +6,7 @@ import { Button, Disclosure, Textarea } from "@rakazo/ui-web";
 import { Popover, PopoverContent, PopoverTrigger } from "@rakazo/ui-web/components/ui/popover";
 import { History } from "lucide-react";
 import { useId, useState } from "react";
+import { getActiveUiLocale } from "../lib/i18n";
 import { rpc } from "../lib/rpc";
 import { errorText } from "../lib/user-error";
 
@@ -72,7 +73,9 @@ export function InstructionSettings({ bot }: { bot: Bot }) {
                   <Disclosure
                     summary={
                       <span className="inline-flex flex-wrap gap-x-2">
-                        <span>{new Date(version.createdAt).toLocaleString()}</span>
+                        <span>
+                          {new Date(version.createdAt).toLocaleString(getActiveUiLocale())}
+                        </span>
                         <span className="text-muted-foreground">{version.reason}</span>
                       </span>
                     }

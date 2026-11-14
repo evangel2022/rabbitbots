@@ -136,6 +136,41 @@ it("redacts known secrets in instruction approval details and editable metadata"
   expect(JSON.stringify(block)).not.toContain("fake-token");
 });
 
+it("shows an identity proposal with explicit Approve and Reject actions", () => {
+  const block = buildApprovalAskBlock(
+    "effect-1",
+    "update_bot",
+    {
+      identityUpdate: {
+        botId: "bot-1",
+        beforeName: "new",
+        beforeDescription: "",
+        name: "短答",
+        description: "Short answers",
+      },
+    },
+    [],
+  );
+  expect(block).toMatchObject({
+    kind: "ask",
+    text: "Bot identity change requested",
+    identityUpdate: {
+      botId: "bot-1",
+      beforeName: "new",
+      beforeDescription: "",
+      name: "短答",
+      description: "Short answers",
+    },
+    actions: [
+      { id: "allow", label: "Approve" },
+      { id: "deny", label: "Reject" },
+    ],
+  });
+  if (block.kind !== "ask") throw new Error("expected an ask block");
+  expect(block.detail).toContain("Current name: new");
+  expect(block.detail).toContain("Proposed name: 短答");
+});
+
 describe("bot management approval cards", () => {
   it.each([
     "create_group",

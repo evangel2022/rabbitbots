@@ -94,9 +94,9 @@ describe("normalizeUiLocale", () => {
 });
 
 describe("resolveUiLocale", () => {
-  it("resolves Polish from browser, environment and saved preferences", () => {
+  it("resolves saved and environment preferences, with English as the default", () => {
     expect(resolveUiLocale({ stored: null, envDefault: null, navigatorLanguage: "pl-PL" })).toBe(
-      "pl",
+      "en",
     );
     expect(resolveUiLocale({ stored: null, envDefault: "pl", navigatorLanguage: "en" })).toBe("pl");
     expect(resolveUiLocale({ stored: "pl", envDefault: "de", navigatorLanguage: "en" })).toBe("pl");
@@ -125,49 +125,10 @@ describe("resolveUiLocale", () => {
     ).toBe("de");
   });
 
-  it("uses navigator.language next, then English", () => {
-    expect(
-      resolveUiLocale({
-        stored: null,
-        envDefault: null,
-        navigatorLanguage: "ko-KR",
-      }),
-    ).toBe("ko");
-    expect(
-      resolveUiLocale({
-        stored: null,
-        envDefault: null,
-        navigatorLanguage: "zh-CN",
-      }),
-    ).toBe("zh-CN");
-    expect(
-      resolveUiLocale({
-        stored: null,
-        envDefault: null,
-        navigatorLanguage: "es-MX",
-      }),
-    ).toBe("es");
-    expect(
-      resolveUiLocale({
-        stored: null,
-        envDefault: null,
-        navigatorLanguage: "ru-RU",
-      }),
-    ).toBe("ru");
-    expect(
-      resolveUiLocale({
-        stored: null,
-        envDefault: null,
-        navigatorLanguage: "fr-FR",
-      }),
-    ).toBe("fr");
-    expect(
-      resolveUiLocale({
-        stored: null,
-        envDefault: null,
-        navigatorLanguage: "nl-NL",
-      }),
-    ).toBe("nl");
+  it("defaults to English regardless of the browser language", () => {
+    for (const navigatorLanguage of ["ko-KR", "zh-CN", "es-MX", "ru-RU", "fr-FR", "nl-NL"]) {
+      expect(resolveUiLocale({ stored: null, envDefault: null, navigatorLanguage })).toBe("en");
+    }
     expect(
       resolveUiLocale({
         stored: null,
@@ -192,14 +153,14 @@ describe("blocked storage", () => {
     else Reflect.deleteProperty(globalThis, "localStorage");
   });
 
-  it("falls back to the browser language and skips saving when reading storage throws", () => {
+  it("falls back to English and skips saving when reading storage throws", () => {
     Object.defineProperty(globalThis, "localStorage", {
       configurable: true,
       get() {
         throw new DOMException("Access is denied for this document.", "SecurityError");
       },
     });
-    expect(resolveUiLocale({ envDefault: null, navigatorLanguage: "de-DE" })).toBe("de");
+    expect(resolveUiLocale({ envDefault: null, navigatorLanguage: "de-DE" })).toBe("en");
     expect(() => persistUiLocale("de")).not.toThrow();
   });
 });
@@ -217,9 +178,9 @@ describe("persistUiLocale", () => {
 });
 
 describe("Traditional Chinese preferences", () => {
-  it("uses the device locale and lets a saved choice override it", () => {
+  it("uses English by default and lets a saved choice override it", () => {
     expect(resolveUiLocale({ stored: null, envDefault: null, navigatorLanguage: "zh-TW" })).toBe(
-      "zh-TW",
+      "en",
     );
     expect(resolveUiLocale({ stored: "zh-TW", envDefault: "en", navigatorLanguage: "zh-CN" })).toBe(
       "zh-TW",

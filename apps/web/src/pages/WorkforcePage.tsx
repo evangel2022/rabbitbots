@@ -1,5 +1,9 @@
 import { Trans, useLingui } from "@lingui/react/macro";
-import type { MeetingActionAcceptanceAction, WorkforceTaskView } from "@rakazo/contracts";
+import type {
+  MeetingActionAcceptanceAction,
+  WorkforceCompanyStatus,
+  WorkforceTaskView,
+} from "@rakazo/contracts";
 import {
   Button,
   cn,
@@ -17,13 +21,15 @@ import { useQuery, useQueryClient } from "@tanstack/react-query";
 import { Bot, BriefcaseBusiness, RefreshCw } from "lucide-react";
 import { useEffect, useState } from "react";
 import { Link } from "react-router-dom";
+import { CreateAiCompany } from "../components/CreateAiCompany";
+import { getActiveUiLocale } from "../lib/i18n";
 import { rpc } from "../lib/rpc";
 import { errorText } from "../lib/user-error";
 import { WindowChrome } from "./WindowChrome";
 
 function formatTime(value: string | null) {
   if (!value) return "—";
-  return new Intl.DateTimeFormat(undefined, {
+  return new Intl.DateTimeFormat(getActiveUiLocale(), {
     month: "short",
     day: "numeric",
     hour: "2-digit",
@@ -67,6 +73,32 @@ export function WorkforcePage() {
   const [newDueAt, setNewDueAt] = useState("");
   const [busy, setBusy] = useState(false);
   const [error, setError] = useState<string | null>(null);
+  const [companyBusy, setCompanyBusy] = useState(false);
+  const [companyError, setCompanyError] = useState<string | null>(null);
+  const [companyStatus, setCompanyStatus] = useState<WorkforceCompanyStatus | undefined>(undefined);
+
+  const companyQuery = useQuery({
+    queryKey: ["workforce", "company"],
+    queryFn: () => rpc.workforce.company.status(),
+  });
+  const currentCompany = companyStatus ?? companyQuery.data;
+
+  async function createAiCompany() {
+    setCompanyBusy(true);
+    setCompanyError(null);
+    try {
+      const created = await rpc.workforce.company.create();
+      setCompanyStatus(created);
+      await queryClient.invalidateQueries({ queryKey: ["workforce"] });
+      await queryClient.invalidateQueries({ queryKey: ["meetings"] });
+      await queryClient.invalidateQueries({ queryKey: ["meetings", "bots"] });
+    } catch (cause) {
+      setCompanyError(errorText(cause, t`Could not create your AI Company`));
+      throw cause;
+    } finally {
+      setCompanyBusy(false);
+    }
+  }
 
   const overviewQuery = useQuery({
     queryKey: ["workforce", "overview"],
@@ -105,10 +137,11 @@ export function WorkforcePage() {
     botTasks.find((task) => task.id === selectedTaskId) ??
     tasks.find((task) => task.id === selectedTaskId) ??
     botTasks[0];
+  const executionTaskId = selectedTask?.linkedWorkforceTaskId ?? selectedTask?.id ?? null;
   const childTasks = selectedTask
     ? tasks.filter(
         (task) =>
-          task.parentTaskId === selectedTask.id || task.parentMeetingActionId === selectedTask.id,
+          task.parentTaskId === executionTaskId || task.parentMeetingActionId === executionTaskId,
       )
     : [];
   const descendantTasks: Array<{ task: WorkforceTaskView; depth: number }> = [];
@@ -120,7 +153,7 @@ export function WorkforcePage() {
       collectDescendants(child.id, depth + 1);
     }
   };
-  if (selectedTask) collectDescendants(selectedTask.id, 1);
+  if (executionTaskId) collectDescendants(executionTaskId, 1);
 
   useEffect(() => {
     if (!selectedBotId && bots[0]) setSelectedBotId(bots[0].id);
@@ -264,6 +297,17 @@ export function WorkforcePage() {
         >
           {error}
         </p>
+      ) : null}
+      {companyQuery.isSuccess ? (
+        <div className="shrink-0 px-4 pt-3">
+          <CreateAiCompany
+            status={currentCompany}
+            busy={companyBusy}
+            error={companyError}
+            onCreate={createAiCompany}
+            secondary
+          />
+        </div>
       ) : null}
       {!data ? (
         <div className="p-6 text-body-sm text-muted-foreground">
@@ -430,7 +474,13 @@ export function WorkforcePage() {
                     · {selectedTask.source.replaceAll("_", " ").toLowerCase()} ·{" "}
                     {selectedTask.meetingTitle ?? "no meeting"}
                   </p>
-                  {selectedTask.parentTaskId || selectedTask.parentMeetingActionId ? (
+                  {selectedTask.linkedWorkforceTaskId ? (
+                    <p className="mt-1 text-label text-muted-foreground">
+                      Parent task: {selectedTask.linkedWorkforceTaskId}
+                    </p>
+                  ) : null}
+                  {!selectedTask.linkedWorkforceTaskId &&
+                  (selectedTask.parentTaskId || selectedTask.parentMeetingActionId) ? (
                     <p className="mt-1 text-label text-muted-foreground">
                       Parent: {selectedTask.parentTaskId ?? selectedTask.parentMeetingActionId}
                       {selectedTask.delegatorBotId
@@ -449,6 +499,14 @@ export function WorkforcePage() {
                       {statusLabel(selectedTask.executionStatus)}
                     </span>
                   </div>
+                  {selectedTask.linkedExecutionStatus ? (
+                    <p className="mt-1 text-label text-muted-foreground">
+                      Parent execution:{" "}
+                      <span className={statusTone(selectedTask.linkedExecutionStatus)}>
+                        {statusLabel(selectedTask.linkedExecutionStatus)}
+                      </span>
+                    </p>
+                  ) : null}
                   <p className="mt-1 text-label text-muted-foreground">
                     Decision: {selectedTask.decisionType ?? "—"} · Approval:{" "}
                     {selectedTask.approvalStatus ?? "—"}
@@ -533,60 +591,64 @@ export function WorkforcePage() {
                       </Button>
                     ) : null}
                   </div>
-                  <Input
-                    className="mt-2"
-                    placeholder={t`Acceptance comment (required for evidence/block)`}
-                    value={comment}
-                    onChange={(event) => setComment(event.target.value)}
-                  />
-                  <div className="mt-2 flex items-center gap-1.5">
-                    <NativeSelect
-                      aria-label={t`Reassign task`}
-                      value={assignBotId}
-                      onChange={(event) => setAssignBotId(event.target.value)}
-                    >
-                      <NativeSelectOption value="">Reassign to…</NativeSelectOption>
-                      {bots.map((bot) => (
-                        <NativeSelectOption key={bot.id} value={bot.id}>
-                          {bot.name}
-                        </NativeSelectOption>
-                      ))}
-                    </NativeSelect>
-                    <Button
-                      size="sm"
-                      variant="secondary"
-                      disabled={busy || !assignBotId}
-                      onClick={() => {
-                        if (!selectedTask || !assignBotId) return;
-                        setBusy(true);
-                        setError(null);
-                        void (
-                          selectedTask.source === "MEETING_DECISION"
-                            ? rpc.meetings.actions.assign({
-                                meetingId: selectedTask.meetingId!,
-                                actionItemId: selectedTask.id,
-                                assigneeBotId: assignBotId,
-                                clientNonce: crypto.randomUUID(),
+                  {selectedTask.executionStatus !== "COMPLETED" ? (
+                    <>
+                      <Input
+                        className="mt-2"
+                        placeholder={t`Acceptance comment (required for evidence/block)`}
+                        value={comment}
+                        onChange={(event) => setComment(event.target.value)}
+                      />
+                      <div className="mt-2 flex items-center gap-1.5">
+                        <NativeSelect
+                          aria-label={t`Reassign task`}
+                          value={assignBotId}
+                          onChange={(event) => setAssignBotId(event.target.value)}
+                        >
+                          <NativeSelectOption value="">Reassign to…</NativeSelectOption>
+                          {bots.map((bot) => (
+                            <NativeSelectOption key={bot.id} value={bot.id}>
+                              {bot.name}
+                            </NativeSelectOption>
+                          ))}
+                        </NativeSelect>
+                        <Button
+                          size="sm"
+                          variant="secondary"
+                          disabled={busy || !assignBotId}
+                          onClick={() => {
+                            if (!selectedTask || !assignBotId) return;
+                            setBusy(true);
+                            setError(null);
+                            void (
+                              selectedTask.source === "MEETING_DECISION"
+                                ? rpc.meetings.actions.assign({
+                                    meetingId: selectedTask.meetingId!,
+                                    actionItemId: selectedTask.id,
+                                    assigneeBotId: assignBotId,
+                                    clientNonce: crypto.randomUUID(),
+                                  })
+                                : rpc.workforce.tasks.assign({
+                                    taskId: selectedTask.id,
+                                    assigneeBotId: assignBotId,
+                                    clientNonce: crypto.randomUUID(),
+                                  })
+                            )
+                              .then(() => {
+                                setAssignBotId("");
+                                return refresh();
                               })
-                            : rpc.workforce.tasks.assign({
-                                taskId: selectedTask.id,
-                                assigneeBotId: assignBotId,
-                                clientNonce: crypto.randomUUID(),
+                              .catch((cause: unknown) => {
+                                setError(errorText(cause, t`Could not reassign this task`));
                               })
-                        )
-                          .then(() => {
-                            setAssignBotId("");
-                            return refresh();
-                          })
-                          .catch((cause: unknown) => {
-                            setError(errorText(cause, t`Could not reassign this task`));
-                          })
-                          .finally(() => setBusy(false));
-                      }}
-                    >
-                      Assign
-                    </Button>
-                  </div>
+                              .finally(() => setBusy(false));
+                          }}
+                        >
+                          Assign
+                        </Button>
+                      </div>
+                    </>
+                  ) : null}
                 </section>
                 <section>
                   <h3 className="text-label font-medium uppercase tracking-wide text-muted-foreground">
@@ -599,7 +661,14 @@ export function WorkforcePage() {
                       selectedTask.attempts.map((attempt) => (
                         <div key={attempt.id} className="rounded-lg border bg-background p-2.5">
                           <div className="flex items-center justify-between gap-2 text-label">
-                            <span className="font-medium">Attempt {attempt.attemptNumber}</span>
+                            <span className="font-medium">
+                              Attempt {attempt.attemptNumber}
+                              {selectedTask.continuationRunId === attempt.botRunId
+                                ? " · Continuation"
+                                : attempt.attemptNumber === 1
+                                  ? " · Original"
+                                  : ""}
+                            </span>
                             <span className={statusTone(attempt.resultStatus ?? attempt.status)}>
                               {attempt.resultStatus ?? attempt.status}
                             </span>
@@ -607,19 +676,43 @@ export function WorkforcePage() {
                           <div className="mt-1 text-label text-muted-foreground">
                             Task {attempt.taskId ?? "—"} · Run {attempt.botRunId ?? "—"}
                           </div>
+                          {attempt.runStatus || attempt.runTrigger ? (
+                            <div className="text-label text-muted-foreground">
+                              Run status {attempt.runStatus ?? "—"} ·{" "}
+                              {attempt.runTrigger ?? "trigger unknown"}
+                            </div>
+                          ) : null}
                           <div className="text-label text-muted-foreground">
                             {formatTime(attempt.startedAt)} – {formatTime(attempt.completedAt)}
                           </div>
                           {attempt.resultSummary ? (
-                            <p className="mt-1 whitespace-pre-wrap text-body-sm text-muted-foreground">
-                              {attempt.resultSummary}
-                            </p>
+                            <details className="mt-1">
+                              <summary className="cursor-pointer text-label text-muted-foreground">
+                                Result details
+                              </summary>
+                              <p className="mt-1 whitespace-pre-wrap text-body-sm text-muted-foreground">
+                                {attempt.resultSummary}
+                              </p>
+                            </details>
                           ) : null}
                           {attempt.evidence.length ? (
-                            <div className="mt-1 text-label text-muted-foreground">
-                              Evidence: {attempt.evidence.join("; ")}
-                            </div>
-                          ) : null}
+                            <details className="mt-1">
+                              <summary className="cursor-pointer text-label text-muted-foreground">
+                                Evidence ({attempt.evidence.length})
+                              </summary>
+                              <div className="mt-1 space-y-0.5 text-label text-muted-foreground">
+                                {attempt.evidence.map((item) => (
+                                  <p key={item} className="break-words">
+                                    {item}
+                                  </p>
+                                ))}
+                              </div>
+                            </details>
+                          ) : (
+                            <p className="mt-1 text-label text-muted-foreground">
+                              No evidence recorded.
+                            </p>
+                          )}
                           {attempt.error ? (
                             <p className="mt-1 text-label text-destructive">{attempt.error}</p>
                           ) : null}
@@ -646,6 +739,12 @@ export function WorkforcePage() {
                           <span className="ms-2 text-muted-foreground">
                             {child.assigneeBotName ?? "unassigned"} · {child.executionStatus} ·{" "}
                             {child.latestResultStatus ?? "no result"}
+                            {child.attempts.some((attempt) => attempt.evidence.length)
+                              ? ` · evidence ${child.attempts.reduce(
+                                  (count, attempt) => count + attempt.evidence.length,
+                                  0,
+                                )}`
+                              : ""}
                           </span>
                         </button>
                       ))}
@@ -691,8 +790,11 @@ export function WorkforcePage() {
                     <div className="mt-2 space-y-1">
                       {selectedTask.delegations.map((delegation) => (
                         <div key={delegation.id} className="text-label text-muted-foreground">
-                          {delegation.status} · child {delegation.childTaskId} · result{" "}
-                          {delegation.resultStatus ?? "—"}
+                          {delegation.status} ·{" "}
+                          {delegation.toolInvocationId
+                            ? `real model delegation · invocation ${delegation.toolInvocationId}`
+                            : "deterministic demo delegation"}{" "}
+                          · child {delegation.childTaskId} · result {delegation.resultStatus ?? "—"}
                           {delegation.error ? ` · ${delegation.error}` : ""}
                           {delegation.timedOutAt
                             ? ` · timed out ${formatTime(delegation.timedOutAt)}`

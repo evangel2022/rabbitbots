@@ -202,6 +202,11 @@ import {
 } from "./model-connections.js";
 import { ModelHeadersSchema } from "./model-headers.js";
 import { ModelRoleSchema, ModelRoleUpdateSchema, ModelRoleViewSchema } from "./model-roles.js";
+import {
+  NetworkProxySettingsSchema,
+  NetworkProxyTestResultSchema,
+  NetworkProxyUpdateSchema,
+} from "./network-proxy.js";
 import { OrchestrationListInput, OrchestrationListOutput } from "./orchestration.js";
 import {
   PAGE_LIST_MAX_LIMIT,
@@ -229,6 +234,14 @@ import { SecurityEventListInputSchema, SecurityEventSchema } from "./security-ev
 import { SettingsScopeSchema, SpaceSettingSchema, settingsScopeInput } from "./settings-scope.js";
 import { SpaceAvailabilitySchema } from "./space-availability.js";
 import {
+  UserNetworkProxySettingsSchema,
+  UserNetworkProxyTestResultSchema,
+  UserNetworkProxyUpdateSchema,
+} from "./user-network-proxy.js";
+import {
+  WorkforceCompanyCreateInput,
+  WorkforceCompanyStatus,
+  WorkforceDemoStatus,
   WorkforceDirectTaskInput,
   WorkforceOverview,
   WorkforceTaskAcceptanceInput,
@@ -493,6 +506,18 @@ export const appContract = {
         }),
       )
       .output(DeploymentSettingsSchema),
+  },
+  /** Deployment-owner outbound proxy for server-side model and web traffic. */
+  networkProxy: {
+    get: oc.output(NetworkProxySettingsSchema),
+    update: oc.input(NetworkProxyUpdateSchema).output(NetworkProxySettingsSchema),
+    test: oc.output(NetworkProxyTestResultSchema),
+  },
+  /** The signed-in person's own model egress proxy. Never reads another account's row. */
+  userProxy: {
+    get: oc.output(UserNetworkProxySettingsSchema),
+    update: oc.input(UserNetworkProxyUpdateSchema).output(UserNetworkProxySettingsSchema),
+    test: oc.output(UserNetworkProxyTestResultSchema),
   },
   /** Admin choice of where new computers run, with that provider's connection settings. */
   computerProvider: {
@@ -1571,6 +1596,14 @@ export const appContract = {
   },
   workforce: {
     overview: oc.output(WorkforceOverview),
+    company: {
+      status: oc.output(WorkforceCompanyStatus),
+      create: oc.input(WorkforceCompanyCreateInput.optional()).output(WorkforceCompanyStatus),
+    },
+    demo: {
+      status: oc.output(WorkforceDemoStatus),
+      launch: oc.output(WorkforceDemoStatus),
+    },
     tasks: {
       create: oc.input(WorkforceDirectTaskInput).output(WorkforceTaskView),
       execute: oc.input(WorkforceTaskExecuteInput).output(WorkforceTaskView),

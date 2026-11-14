@@ -215,6 +215,190 @@ describe("dispatchTool audit outcomes", () => {
       },
     ]);
   });
+  it("persists the runtime invocation before executing the tool handler", async () => {
+    const order: string[] = [];
+    const execute = vi.fn(async function* () {
+      order.push("handler");
+      yield { type: "result", data: { deleted: "durable" } };
+    });
+    const toolInvocation = {
+      findUnique: vi.fn(async () => null),
+      create: vi.fn(async ({ data }: { data: Record<string, unknown> }) => {
+        order.push("persist");
+        return {
+          ...data,
+          id: "row-1",
+          fencingToken: 0,
+          leaseOwner: null,
+          leaseExpiresAt: null,
+          result: null,
+          error: null,
+        };
+      }),
+      updateMany: vi.fn(async ({ data }: { data: { status?: string } }) => {
+        if (data.status === "EXECUTING") order.push("claim");
+        if (data.status === "SUCCEEDED") order.push("complete");
+        return { count: 1 };
+      }),
+      findUniqueOrThrow: vi.fn(async () => ({ fencingToken: 1 })),
+    };
+    const base = dispatchContext(false);
+    const ctx = {
+      ...base,
+      deps: {
+        ...base.deps,
+        prisma: { ...base.deps.prisma, toolInvocation },
+        connector: { execute },
+      },
+      bot: { id: "bot-1" },
+      thread: { id: "thread-1" },
+      run: { userId: "user-1", spaceId: "space-1" },
+      workerId: "worker-1",
+      fence: 1,
+      state: {
+        ...base.state,
+        effects: {
+          occurrences: [],
+          counts: new Map(),
+          restoredPending: undefined,
+          pendingTurnCheckpoints: new Map(),
+          pendingToolInvocationIds: new Map(),
+          pendingToolInvocationMeta: new Map(),
+          invocationSequence: 0,
+          consumedIds: new Set(),
+          storedTurnCheckpoint: false,
+        },
+      },
+    };
+    ctx.tools.connector.set("delete_bot", {
+      name: "delete_bot",
+      route: { connectorId: "remote", resourceId: "server-1", toolName: "delete_bot" },
+    });
+    await expect(
+      applyTool(ctx as never, "delete_bot", { id: "remote-object" }, "call-durable"),
+    ).resolves.toEqual({ deleted: "durable" });
+    expect(order).toEqual(["persist", "claim", "handler", "complete"]);
+    expect(execute).toHaveBeenCalledOnce();
+    expect(toolInvocation.create).toHaveBeenCalledWith(
+      expect.objectContaining({
+        data: expect.objectContaining({ toolName: "delete_bot", status: "RECEIVED" }),
+      }),
+    );
+  });
+
+  it("records a nested helper tool call with runtime depth", async () => {
+    const execute = vi.fn(async function* () {
+      yield { type: "result", data: { deleted: "nested" } };
+    });
+    const toolInvocation = {
+      findUnique: vi.fn(async () => null),
+      create: vi.fn(async ({ data }: { data: Record<string, unknown> }) => ({
+        ...data,
+        id: "row-nested",
+        fencingToken: 0,
+        leaseOwner: null,
+        leaseExpiresAt: null,
+        result: null,
+        error: null,
+      })),
+      updateMany: vi.fn(async () => ({ count: 1 })),
+      findUniqueOrThrow: vi.fn(async () => ({ fencingToken: 1 })),
+    };
+    const base = dispatchContext(false);
+    const ctx = {
+      ...base,
+      deps: {
+        ...base.deps,
+        prisma: { ...base.deps.prisma, toolInvocation },
+        connector: { execute },
+      },
+      bot: { id: "bot-1" },
+      thread: { id: "thread-1" },
+      run: { userId: "user-1", spaceId: "space-1" },
+      attempt: { id: "attempt-1" },
+      workerId: "worker-1",
+      fence: 1,
+      state: {
+        ...base.state,
+        effects: {
+          occurrences: [],
+          counts: new Map(),
+          restoredPending: undefined,
+          pendingTurnCheckpoints: new Map(),
+          pendingToolInvocationIds: new Map(),
+          pendingToolInvocationMeta: new Map(),
+          invocationSequence: 0,
+          consumedIds: new Set(),
+          storedTurnCheckpoint: false,
+        },
+      },
+    };
+    ctx.tools.connector.set("delete_bot", {
+      name: "delete_bot",
+      route: { connectorId: "remote", resourceId: "server-1", toolName: "delete_bot" },
+    });
+    await applyTool(
+      ctx as never,
+      "delete_bot",
+      { id: "remote-object" },
+      JSON.stringify(["pi-tool", "helper", "nested-call"]),
+    );
+    expect(toolInvocation.create).toHaveBeenCalledWith(
+      expect.objectContaining({
+        data: expect.objectContaining({
+          toolName: "delete_bot",
+          runtimeDepth: 1,
+          turnId: "attempt-1",
+        }),
+      }),
+    );
+  });
+
+  it("does not execute the handler when invocation persistence fails", async () => {
+    const execute = vi.fn();
+    const toolInvocation = {
+      findUnique: vi.fn(async () => null),
+      create: vi.fn(async () => {
+        throw new Error("persistence unavailable");
+      }),
+    };
+    const base = dispatchContext(false);
+    const ctx = {
+      ...base,
+      deps: {
+        ...base.deps,
+        prisma: { ...base.deps.prisma, toolInvocation },
+        connector: { execute },
+      },
+      bot: { id: "bot-1" },
+      thread: { id: "thread-1" },
+      run: { userId: "user-1", spaceId: "space-1" },
+      workerId: "worker-1",
+      fence: 1,
+      state: {
+        ...base.state,
+        effects: {
+          occurrences: [],
+          counts: new Map(),
+          restoredPending: undefined,
+          pendingTurnCheckpoints: new Map(),
+          pendingToolInvocationIds: new Map(),
+          pendingToolInvocationMeta: new Map(),
+          invocationSequence: 0,
+          consumedIds: new Set(),
+          storedTurnCheckpoint: false,
+        },
+      },
+    };
+    ctx.tools.connector.set("delete_bot", {
+      name: "delete_bot",
+      route: { connectorId: "remote", resourceId: "server-1", toolName: "delete_bot" },
+    });
+    await expect(
+      applyTool(ctx as never, "delete_bot", { id: "remote-object" }, "call-failure"),
+    ).rejects.toThrow("persistence unavailable");
+    expect(execute).not.toHaveBeenCalled();
+  });
 });
 
 describe("isToolError", () => {

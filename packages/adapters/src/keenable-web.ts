@@ -72,6 +72,7 @@ export class KeenableWebProvider implements WebProvider {
       { query, max_results: maxResults },
       signal,
       searchSchema,
+      context,
     );
     return response.results
       .filter((page) => publicPageUrl(page.url) !== undefined)
@@ -108,6 +109,7 @@ export class KeenableWebProvider implements WebProvider {
       { url: url.href, max_chars: offset + maxChars + 1 },
       signal,
       pageSchema,
+      context,
     );
     const pageUrl = publicPageUrl(page.url);
     if (!pageUrl) throw new Error("Keenable returned an invalid page URL");
@@ -129,6 +131,7 @@ export class KeenableWebProvider implements WebProvider {
     args: Record<string, unknown>,
     signal: AbortSignal,
     schema: z.ZodType<T>,
+    context: AdapterContext,
   ): Promise<T> {
     signal.throwIfAborted();
     const headers: Record<string, string> = {
@@ -137,10 +140,20 @@ export class KeenableWebProvider implements WebProvider {
     };
     if (this.apiKey) headers["X-API-Key"] = this.apiKey;
     const raw = await withAbort(
-      callRemoteMcpTool({ ...this.options, endpoint: ENDPOINT, headers, signal }, name, {
-        ...args,
-        output_format: "json",
-      }),
+      callRemoteMcpTool(
+        {
+          ...this.options,
+          endpoint: ENDPOINT,
+          headers,
+          signal,
+          resolveEgressProxy: context.resolveEgressProxy,
+        },
+        name,
+        {
+          ...args,
+          output_format: "json",
+        },
+      ),
       signal,
     );
     // A limited serialized envelope fails here instead of becoming page text.

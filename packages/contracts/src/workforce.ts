@@ -51,6 +51,7 @@ export const WorkforceDelegationView = z.object({
   resultSummary: z.string().nullable(),
   evidence: z.array(z.string()),
   error: z.string().nullable(),
+  toolInvocationId: z.string().nullable(),
   deliveredAt: IsoDate.nullable(),
   completedAt: IsoDate.nullable(),
   deadlineAt: IsoDate.nullable(),
@@ -79,6 +80,8 @@ export const WorkforceTaskView = z.object({
   approvalStatus: MeetingApprovalStatus.nullable(),
   conditionsConfirmedAt: IsoDate.nullable(),
   executionStatus: WorkforceExecutionStatus,
+  /** Execution status of the linked parent WorkforceTask, when this row is an Action. */
+  linkedExecutionStatus: WorkforceExecutionStatus.nullable(),
   latestResultStatus: MeetingActionResultStatus.nullable(),
   latestResultSummary: z.string().nullable(),
   acceptanceStatus: z.string().nullable(),
@@ -87,6 +90,8 @@ export const WorkforceTaskView = z.object({
   dueAt: IsoDate.nullable(),
   parentTaskId: Id.nullable(),
   parentMeetingActionId: Id.nullable(),
+  /** The WorkforceTask that owns this action's real execution, when it exists. */
+  linkedWorkforceTaskId: Id.nullable(),
   parentRunId: Id.nullable(),
   delegatorBotId: Id.nullable(),
   delegationDepth: z.number().int(),
@@ -144,6 +149,67 @@ export const WorkforceTaskAcceptanceInput = z.object({
   clientNonce: z.string().min(8).max(128),
 });
 export type WorkforceTaskAcceptanceInput = z.infer<typeof WorkforceTaskAcceptanceInput>;
+
+export const AI_COMPANY_MEETING_TITLE = "First AI Company Strategy Meeting";
+
+export const AI_COMPANY_DEMO_MEETING_TITLE =
+  "Launch RabbitBots on GitHub — AI Company Launch Strategy";
+
+export const AI_COMPANY_DEMO_AGENDA = [
+  "Product Positioning and Developer Audience",
+  "GitHub Launch Plan and Execution",
+] as const;
+
+export const WorkforceCompanyBotView = z.object({
+  roleKey: z.enum(["ceo", "research", "finance", "operations"]),
+  role: z.string(),
+  id: Id,
+  name: z.string(),
+  description: z.string(),
+});
+export type WorkforceCompanyBotView = z.infer<typeof WorkforceCompanyBotView>;
+
+export const WorkforceCompanyStatus = z.object({
+  created: z.boolean(),
+  /** The AI company profile chosen in onboarding; absent on spaces created before it. */
+  name: z.string().nullable().optional(),
+  description: z.string().nullable().optional(),
+  bots: z.array(WorkforceCompanyBotView),
+  meetingId: Id.nullable(),
+  meetingTitle: z.string(),
+});
+export type WorkforceCompanyStatus = z.infer<typeof WorkforceCompanyStatus>;
+
+export const WORKFORCE_COMPANY_ROLE_KEYS = ["ceo", "research", "finance", "operations"] as const;
+export const WorkforceCompanyRoleKey = z.enum(WORKFORCE_COMPANY_ROLE_KEYS);
+export type WorkforceCompanyRoleKey = z.infer<typeof WorkforceCompanyRoleKey>;
+
+export const WorkforceCompanyRoleInput = z.object({
+  key: WorkforceCompanyRoleKey,
+  name: z.string().trim().min(1).max(80),
+  description: z.string().trim().min(1).max(500),
+});
+export type WorkforceCompanyRoleInput = z.infer<typeof WorkforceCompanyRoleInput>;
+
+export const WorkforceCompanyCreateInput = z.object({
+  /** Optional for older callers that only need the default company. */
+  name: z.string().trim().min(1).max(120).optional(),
+  description: z.string().trim().max(2_000).optional(),
+  /** Names and responsibilities only; role instructions stay fixed. */
+  roles: z.array(WorkforceCompanyRoleInput).length(4).optional(),
+});
+export type WorkforceCompanyCreateInput = z.infer<typeof WorkforceCompanyCreateInput>;
+
+export const WorkforceDemoStatus = z.object({
+  created: z.boolean(),
+  companyCreated: z.boolean(),
+  bots: z.array(WorkforceCompanyBotView),
+  meetingId: Id.nullable(),
+  meetingTitle: z.string(),
+  meetingStatus: z.string().nullable(),
+  modelReady: z.boolean(),
+});
+export type WorkforceDemoStatus = z.infer<typeof WorkforceDemoStatus>;
 
 export const WorkforceTaskAssignInput = z.object({
   taskId: Id,

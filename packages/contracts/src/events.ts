@@ -140,6 +140,16 @@ export const MessageBlock = z.discriminatedUnion("kind", [
         undoVersionId: Id.optional(),
       })
       .optional(),
+    /** A proposed name/description change; the card is only an approval, not a write. */
+    identityUpdate: z
+      .object({
+        botId: Id,
+        beforeName: z.string(),
+        beforeDescription: z.string(),
+        name: z.string().optional(),
+        description: z.string().optional(),
+      })
+      .optional(),
     /** A settings change made from chat; undo writes `before` back while `after` still holds. */
     settingsUpdate: z
       .object({ botId: Id, before: BotSettingsValuesSchema, after: BotSettingsValuesSchema })

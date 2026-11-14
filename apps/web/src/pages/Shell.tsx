@@ -45,6 +45,7 @@ import { CallCard, CallReturnBar } from "../components/call/CallCard";
 import { IncomingCall } from "../components/call/IncomingCall";
 import { PageLoading } from "../components/PageLoading";
 import { PageViewHost } from "../components/pages/PageViewHost";
+import { invalidateActivityQueries } from "../lib/activity-refresh";
 import type { ArtifactTarget } from "../lib/artifact-open";
 import { authClient } from "../lib/auth";
 import { peekBootstrapSeed } from "../lib/bootstrap";
@@ -81,12 +82,6 @@ import { ComputerPanel } from "./shell/computer-panel";
 import { ComputerWorkspace, ComputerWorkspaceRail } from "./shell/computer-workspace";
 import type { CreateBotDialogInput } from "./shell/create-bot-dialog";
 import type { ImportSetupTarget } from "./shell/import-setup-card";
-import {
-  findInvestorDemoTeam,
-  INVESTOR_DEMO_TASK,
-  InvestorDemoDialog,
-  InvestorDemoWelcome,
-} from "./shell/investor-demo";
 import { KeyboardShortcutsDialog } from "./shell/keyboard-shortcuts-dialog";
 import { OrchestrationStrip } from "./shell/orchestration-strip";
 import { ShellDialogs, useShellDialogs } from "./shell/shell-dialogs";
@@ -314,16 +309,6 @@ function SpaceShell() {
     active?.id,
     Boolean(snapshot?.run),
   );
-  // The seeded CEO/Research/Finance trio is the productized investor demo. No report is stored
-  // here: the entry only sends the preset task to the real team.
-  const investorDemo = useMemo(() => findInvestorDemoTeam(bots), [bots]);
-  const [investorDemoOpen, setInvestorDemoOpen] = useState(false);
-  const investorDemoActive = Boolean(
-    investorDemo && !inGroup && active?.id === investorDemo.ceo.id,
-  );
-  useEffect(() => {
-    if (!investorDemoActive) setInvestorDemoOpen(false);
-  }, [investorDemoActive]);
   // The old Computer tab stays as the narrow-screen fallback; wide screens use the rail.
   useEffect(() => {
     if (panel === "computer" && wideWorkspace) setPanel(null);
@@ -756,6 +741,10 @@ function SpaceShell() {
     onUpgrade: () => openSettings("billing"),
   });
   const { computerBot, openComputer } = computerControls;
+  const refreshActivity = useCallback(async () => {
+    if (!search.activityMode) return;
+    await invalidateActivityQueries(queryClient, queries);
+  }, [queries, search.activityMode]);
   const composer = useComposerActions({
     rpc,
     pageSession: pages.session,
@@ -769,6 +758,7 @@ function SpaceShell() {
     activeSnapshot,
     navigate,
     refreshBots,
+    refreshActivity,
     refreshThreadRef,
     refreshGroupThreadRef,
     updateSnapshot: thread.updateSnapshot,
@@ -779,26 +769,6 @@ function SpaceShell() {
     flushPendingBrowserNotifications,
   });
   const { sending, sendError, stopRun } = composer;
-  const investorDemoHasUserMessage =
-    activeSnapshot?.messages.some((message) => message.role === "user") ?? false;
-  const showInvestorDemoWelcome = Boolean(
-    investorDemoActive && !activeOrchestration && !investorDemoHasUserMessage,
-  );
-  // A fresh account still has the thread-creation ask pending. That is not a demo run in progress:
-  // allow the first send, but block a second demo while a user-triggered run is active.
-  const investorDemoBusy = sending || (composerRunning && investorDemoHasUserMessage);
-  const startInvestorDemo = useCallback(async () => {
-    if (!investorDemoActive || sending || (composerRunning && investorDemoHasUserMessage)) {
-      return false;
-    }
-    return composer.sendMessage(INVESTOR_DEMO_TASK, [], newClientId());
-  }, [
-    composer.sendMessage,
-    composerRunning,
-    investorDemoActive,
-    investorDemoHasUserMessage,
-    sending,
-  ]);
   function openChatSettings(kind: "bot" | "group", id: string) {
     const destKey =
       userId && bootstrapMe?.spaceId
@@ -948,6 +918,7 @@ function SpaceShell() {
         computersAreUnavailable(bootstrapMe?.sandboxProvider),
       billing: bootstrapMe?.billingEnabled === true,
       updates: Boolean(desktopBridge()?.update),
+      network: true,
     },
     onNewBot: () => dialogs.setCreateBotOpen(true),
     onNewGroup: () => setPanel("create-group"),
@@ -978,6 +949,7 @@ function SpaceShell() {
     dialogs.setCreateBotOpen(false);
     await composer.startFocusPrompt(bot.id, isFirstBot);
     await refreshBots().catch(() => undefined);
+    await refreshActivity().catch(() => undefined);
   }
 
   const contextBot =
@@ -1171,7 +1143,6 @@ function SpaceShell() {
               }
               callBot(bot);
             }}
-            onOpenInvestorDemo={investorDemoActive ? () => setInvestorDemoOpen(true) : undefined}
             onOpenComputer={
               !wideWorkspace && !inGroup && active
                 ? () => computerControls.onOpenComputer(active.id)
@@ -1179,17 +1150,6 @@ function SpaceShell() {
             }
             showComputerButton={!wideWorkspace && !inGroup && Boolean(active)}
           />
-          {showInvestorDemoWelcome && investorDemo ? (
-            <div className="shrink-0 px-4 pb-2 pt-[76px]">
-              <div className="mx-auto max-w-[60rem]">
-                <InvestorDemoWelcome
-                  team={investorDemo}
-                  busy={investorDemoBusy}
-                  onStart={() => setInvestorDemoOpen(true)}
-                />
-              </div>
-            </div>
-          ) : null}
           {!active && !activeGroup && initialBotsLoaded ? (
             <div className="grid flex-1 place-items-center">
               <Button onClick={() => dialogs.setCreateBotOpen(true)}>
@@ -1457,15 +1417,6 @@ function SpaceShell() {
         setAgentSkills={setAgentSkills}
         onClearBot={(bot) => dialogs.setClearTarget({ kind: "bot", chat: bot })}
       />
-
-      {investorDemoOpen && investorDemo && investorDemoActive ? (
-        <InvestorDemoDialog
-          team={investorDemo}
-          busy={investorDemoBusy}
-          onClose={() => setInvestorDemoOpen(false)}
-          onStart={startInvestorDemo}
-        />
-      ) : null}
 
       <Suspense fallback={null}>
         <ShellDialogs

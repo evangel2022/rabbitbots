@@ -10,6 +10,7 @@ const SETTINGS_SECTIONS = [
   "messaging",
   "wallet",
   "usage",
+  "network",
   "computer",
   "billing",
   "updates",

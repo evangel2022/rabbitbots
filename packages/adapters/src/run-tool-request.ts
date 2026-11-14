@@ -49,7 +49,13 @@ import { scheduleCreateRefusal } from "./run-tools-tasks.js";
 import { USER_COMPUTER_TOOLS } from "./run-tools-user-computer.js";
 import { SCHEDULE_TOOL_NAMES } from "./schedule-tools.js";
 import { SKILL_TOOL_NAMES } from "./skill-tools.js";
-import { argumentGiven, dropUnchangedOwnBotArgs } from "./update-bot-patch.js";
+import {
+  argumentGiven,
+  dropUnchangedOwnBotArgs,
+  OWN_BOT_IDENTITY_KEY,
+  ownBotIdentityChange,
+  parseUpdateBotPatch,
+} from "./update-bot-patch.js";
 import type { VaultCardUse } from "./vault-card-use.js";
 import { cardUseSummary, requestedCardUse, vaultCardUseOf } from "./vault-card-use.js";
 
@@ -71,6 +77,8 @@ export interface ToolRequest {
   fleetSummary: FleetCardSummary | undefined;
   /** Gated like a consequential action, even when the tool alone is not. */
   heldForApproval: boolean;
+  /** A name/description proposal that must be approved by a person in every approval mode. */
+  identityApproval?: boolean;
   /** This page tool call completes a purchase, which a person approves each time. */
   purchase: PurchaseApproval | undefined;
   /** This page tool call types a saved card into a checkout, which a person approves each time. */
@@ -290,6 +298,7 @@ export async function resolveToolRequest(
     replayEffectToolName,
     fleetSummary: undefined,
     heldForApproval: false,
+    identityApproval: false,
     purchase: undefined,
     cardUse: undefined,
   };
@@ -359,6 +368,15 @@ export async function prepareToolRequest(
     if (refused) return refused;
     args = request.args;
   }
+  if (
+    name === "update_bot" &&
+    argumentGiven(args.bot_id) &&
+    (argumentGiven(args.name) || argumentGiven(args.description))
+  )
+    return {
+      error:
+        "Change another bot's name or description in Settings. Chat cannot change another bot's identity without its owner acting there.",
+    };
   if (name === "update_bot" && !argumentGiven(args.bot_id)) {
     const refused = await prepareOwnBotUpdate(ctx, request);
     if (refused) return refused;
@@ -521,6 +539,47 @@ async function currentModelNames(
  * `update_bot` on this bot itself. Under Never ask instructions are written at once; otherwise
  * they go through approval like any other action, and outside runs cannot change them.
  */
+/** A name/description proposal with the values it would replace, held for a person's approval. */
+function identityChangeFromArgs(
+  args: Record<string, unknown>,
+  current: { name: string; description: string | null },
+  botId: string,
+): { error: string } | { change?: ReturnType<typeof ownBotIdentityChange> } {
+  const name = argumentGiven(args.name) ? String(args.name) : undefined;
+  const description = argumentGiven(args.description) ? String(args.description) : undefined;
+  if (name === undefined && description === undefined) return {};
+  const other = Object.keys(args).filter(
+    (key) => key !== "name" && key !== "description" && argumentGiven(args[key]),
+  );
+  if (other.length)
+    return {
+      error:
+        "Change your name or description in its own update_bot call, without instructions or other settings.",
+    };
+  const parsed = parseUpdateBotPatch({
+    ...(name !== undefined ? { name } : {}),
+    ...(description !== undefined ? { description } : {}),
+  });
+  if ("error" in parsed) return parsed;
+  const nextName = parsed.patch.name;
+  const nextDescription = parsed.patch.description;
+  const currentDescription = current.description ?? "";
+  if (
+    (nextName === undefined || nextName === current.name) &&
+    (nextDescription === undefined || nextDescription === currentDescription)
+  )
+    return {};
+  return {
+    change: {
+      botId,
+      beforeName: current.name,
+      beforeDescription: currentDescription,
+      ...(nextName !== undefined ? { name: nextName } : {}),
+      ...(nextDescription !== undefined ? { description: nextDescription } : {}),
+    },
+  };
+}
+
 async function prepareOwnBotUpdate(
   ctx: RunContext,
   request: ToolRequest,
@@ -529,7 +588,10 @@ async function prepareOwnBotUpdate(
   const { executionId, nextApprovedTool } = request;
   if (nextApprovedTool === "update_bot") {
     // The approved replay runs the stored request.
-    request.heldForApproval = typeof request.args.previousInstructions === "string";
+    request.heldForApproval =
+      typeof request.args.previousInstructions === "string" ||
+      Boolean(ownBotIdentityChange(request.args[OWN_BOT_IDENTITY_KEY]));
+    request.identityApproval = Boolean(ownBotIdentityChange(request.args[OWN_BOT_IDENTITY_KEY]));
     return undefined;
   }
   const { previousInstructions: _previous, reason: _reason, ...given } = request.args;
@@ -578,6 +640,17 @@ async function prepareOwnBotUpdate(
         ctx,
         "Model, thinking, voice and read-aloud changes are blocked for the rest of this run because it read outside content.",
       );
+  }
+  if (current) {
+    const identity = identityChangeFromArgs(args, current, ctx.bot.id);
+    if ("error" in identity) return identity;
+    if (identity.change) {
+      request.args = { [OWN_BOT_IDENTITY_KEY]: identity.change };
+      request.effectRequest = request.args;
+      request.heldForApproval = true;
+      request.identityApproval = true;
+      return undefined;
+    }
   }
   if (!argumentGiven(args.instructions)) return undefined;
   if (isSubagentToolExecution(executionId)) return { error: "Helpers cannot set instructions." };

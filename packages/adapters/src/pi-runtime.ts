@@ -150,6 +150,11 @@ export interface PiAgentRuntimeOptions {
   sessionRoot?: string;
   /** Explicit transport for tests and synthetic wire diagnostics. */
   modelFetch?: typeof globalThis.fetch;
+  /** Per-run transport, so a user's own proxy choice applies to this run's requests. */
+  modelFetchForRun?: (
+    request: AgentRunRequest,
+    context: Partial<AdapterContext>,
+  ) => typeof globalThis.fetch;
   modelCallObserver?: ModelCallObserver;
   /** Sanitized per-call selection telemetry; never includes prompt or credentials. */
   onContextDecision?: (
@@ -164,11 +169,13 @@ export interface PiAgentRuntimeOptions {
 export class PiAgentRuntime implements AgentRuntime {
   private readonly sessionRecorder?: PiSessionRecorder;
   private readonly modelFetch?: typeof globalThis.fetch;
+  private readonly modelFetchForRun?: PiAgentRuntimeOptions["modelFetchForRun"];
   private readonly modelCallObserver?: ModelCallObserver;
   private readonly onContextDecision?: PiAgentRuntimeOptions["onContextDecision"];
 
   constructor(options: PiAgentRuntimeOptions = {}) {
     this.modelFetch = options.modelFetch;
+    this.modelFetchForRun = options.modelFetchForRun;
     this.modelCallObserver = options.modelCallObserver;
     this.onContextDecision = options.onContextDecision;
     this.sessionRecorder = options.sessionRoot
@@ -239,6 +246,7 @@ export class PiAgentRuntime implements AgentRuntime {
     const stopThinking = () => setThinking(false);
     signal.addEventListener("abort", stopThinking, { once: true });
 
+    const modelFetch = this.modelFetchForRun?.(request, context ?? {}) ?? this.modelFetch;
     const work = withPiTelemetry(request, async (span) => {
       let trackedBudget: ToolCallBudget | undefined;
       let resumeHost: ToolHost | undefined;
@@ -291,7 +299,7 @@ export class PiAgentRuntime implements AgentRuntime {
         const host: ToolHost = {
           queue,
           context,
-          modelFetch: this.modelFetch,
+          modelFetch,
           onContextDecision: this.onContextDecision,
           modelCallObserver: this.modelCallObserver,
           request,
@@ -618,7 +626,7 @@ export class PiAgentRuntime implements AgentRuntime {
             fallbackAwareModelStream(
               fallbackState,
               ctx,
-              withAutomatedLabels({ ...options, fetch: this.modelFetch ?? options?.fetch }),
+              withAutomatedLabels({ ...options, fetch: modelFetch ?? options?.fetch }),
             ),
           getApiKey:
             hasBackups || computer

@@ -99,6 +99,8 @@ export interface ToolCall {
   readonly name: string;
   readonly args: Record<string, unknown>;
   readonly executionId: string;
+  /** Internal durable runtime identity. Never taken from model arguments. */
+  readonly invocationId?: string;
   readonly observer: AgentToolExecutionObserver | undefined;
   readonly connectorCall: ConnectorCall;
   /** Idempotency key of this call's effect; also the delivery key of what it sends. */
@@ -354,7 +356,7 @@ export async function gateToolCall(
             ),
           )
         : false));
-  const plan = USER_COMPUTER_TOOLS.has(name)
+  const planned = USER_COMPUTER_TOOLS.has(name)
     ? await userComputerGate(ctx, approvalResolved.decision === "deny", name, args)
     : planActionGate({
         resolved: approvalResolved,
@@ -370,6 +372,8 @@ export async function gateToolCall(
         newDestination: siteGate === "new",
         purchase: paying,
       });
+  // An identity change is a person's decision in every approval mode, including Never ask.
+  const plan = request.identityApproval && planned !== "deny" ? "ask" : planned;
   // Nobody is there to approve a purchase a webhook run reaches.
   if (paying && run.trigger === "webhook" && plan !== "deny") {
     await auditToolCall(ctx, name, "denied", { reason: "purchase_unattended" });
@@ -569,6 +573,41 @@ export async function gateToolCall(
       },
     };
   }
+  // A boardroom turn has no approval surface; denying the call lets the participant finish with
+  // the evidence it already has instead of leaving the meeting waiting on an invisible card.
+  const meetingDenial = meetingTurnApprovalDenial(run.trigger, name);
+  if (needsApproval && meetingDenial) {
+    if (applied) {
+      await deps.prisma.externalEffect.updateMany({
+        where: { id: applied.effect.id, status: "intended" },
+        data: { status: "denied" },
+      });
+    }
+    return { result: { error: meetingDenial } };
+  }
+  if (
+    needsApproval &&
+    (run.trigger === "workforce_task" || run.trigger === "delegation_continuation")
+  ) {
+    const delegatedTask = await deps.prisma.workforceTask.findFirst({
+      where: { botRunId: run.id },
+      select: { source: true },
+    });
+    const delegatedDenial = delegatedWorkforceApprovalDenial(
+      delegatedTask?.source,
+      run.trigger,
+      name,
+    );
+    if (delegatedDenial) {
+      if (applied) {
+        await deps.prisma.externalEffect.updateMany({
+          where: { id: applied.effect.id, status: "intended" },
+          data: { status: "denied" },
+        });
+      }
+      return { result: { error: delegatedDenial } };
+    }
+  }
   const call = createToolCall(ctx, {
     name,
     args,
@@ -694,6 +733,25 @@ export async function auditToolCall(
     threadId: ctx.thread.id,
     metadata,
   });
+}
+
+/** A delegated child has no approval surface; return a model-visible denial. */
+export function delegatedWorkforceApprovalDenial(
+  source: string | undefined,
+  trigger: string,
+  toolName: string,
+): string | null {
+  if (trigger === "delegation_continuation") {
+    return `${toolName} needs the owner's approval, and a delegation continuation has no approval surface. Don't retry; continue with the available evidence and record what could not be verified.`;
+  }
+  if (trigger !== "workforce_task" || source !== "BOT_DELEGATED") return null;
+  return `${toolName} needs the owner's approval, and a delegated child has no approval surface. Don't retry; continue with the available evidence and record what could not be verified.`;
+}
+
+/** A meeting turn cannot show an approval card; return the model-visible denial instead. */
+export function meetingTurnApprovalDenial(trigger: string, toolName: string): string | null {
+  if (trigger !== "meeting_turn") return null;
+  return `${toolName} needs the owner's approval, and a boardroom turn cannot ask. Don't retry; continue with the available evidence and record what could not be verified.`;
 }
 
 function blockingRuleSuffix(resolved: ReturnType<typeof resolveActionApprovalForTools>): string {

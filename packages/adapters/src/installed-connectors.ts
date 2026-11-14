@@ -142,10 +142,11 @@ export class InstalledConnectorProvider implements ConnectorProvider {
 
   /** Decided per request from the install owner's current standing, so an install saved
    * before an ownership change cannot keep reaching private endpoints. */
-  private async remoteFor(_context: AdapterContext): Promise<RemoteRequestPolicy> {
+  private async remoteFor(context: AdapterContext): Promise<RemoteRequestPolicy> {
     return {
       ...this.remote,
       allowPrivateEndpoint: this.allowPrivateEndpoint,
+      resolveEgressProxy: context.resolveEgressProxy,
     };
   }
 

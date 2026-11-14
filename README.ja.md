@@ -1,4 +1,4 @@
-# Rakazo
+# RabbitBots
 
 [English](./README.md) | [简体中文](./README.zh-CN.md) | [日本語](./README.ja.md)
 
@@ -7,20 +7,14 @@
 [![App Store で iPhone 版をダウンロード](https://img.shields.io/badge/App%20Store-Download%20for%20iPhone-black?labelColor=black&style=for-the-badge&logo=apple&logoColor=white)](https://apps.apple.com/app/rakazo/id6801531099)
 [![Google Play で Android 版をダウンロード](https://img.shields.io/badge/Google%20Play-Get%20the%20app-black?labelColor=black&style=for-the-badge&logo=googleplay&logoColor=white)](https://play.google.com/store/apps/details?id=com.rakazo.app)
 
-![Rakazo：本当に自分のものにできる AI チームメイト](./docs/readme-hero.png)
+**自分だけの AI 企業を作ろう。**
 
-Rakazo は、Grok Bot のオープンソースかつセルフホスト可能な代替ツールです。
-
-メモリ、ルーティン、アプリ、コンピューターを持つ常駐型の AI チームメイト。自分のマシンで、自分のモデルを使って動かせます。
+オープンソースの AI 従業員が会議し、意思決定し、委任し、実際のコンピューターを使い、人間の CEO の承認を得た成果を届けます。
 
 [Web](https://app.rakazo.com)、[デスクトップ](https://rakazo.com/download/)、[iPhone](https://apps.apple.com/app/rakazo/id6801531099)、
 [Android](https://play.google.com/store/apps/details?id=com.rakazo.app) で利用できます。
 
-Meta Muse、OpenAI Dots、Instinct、OpenClaw、Hermes Agent、Claude Duet の代替ツールでもあります。
-
-詳しくは [rakazo.com](https://rakazo.com) をご覧ください。
-
-このドキュメントは[英語版 README](./README.md) の日本語訳です。リンク先のドキュメントは現在英語のみです。
+このドキュメントは[英語版 README](./README.md) の日本語訳です。英語版が現在のプロダクト定位の基準です。
 
 ## 機能
 
@@ -109,7 +103,7 @@ curl -fsSLO https://raw.githubusercontent.com/elie222/rakazo/main/infra/compose/
 bash install-images.sh
 ```
 
-インストーラーは Compose ファイルをダウンロードし、ランダムなシークレットを含む `.env` を作成して Rakazo を起動します。
+インストーラーは Compose ファイルをダウンロードし、ランダムなシークレットを含む `.env` を作成して RabbitBots を起動します。
 再実行時は既存の `.env` をそのまま残します。
 
 [http://127.0.0.1:5173](http://127.0.0.1:5173) を開き、アカウントを作成してモデルを接続します。
@@ -230,7 +224,7 @@ Railway のサンドボックス利用は従量課金です。
 
 ## デスクトップとモバイル
 
-Electron アプリと Expo アプリは、Web アプリと同じ Rakazo API を使うクライアントです。
+Electron アプリと Expo アプリは、Web アプリと同じ RabbitBots API を使うクライアントです。
 
 開発用スタックを起動した状態で、次のコマンドで Electron を起動します。
 
@@ -238,14 +232,14 @@ Electron アプリと Expo アプリは、Web アプリと同じ Rakazo API を�
 pnpm --filter @rakazo/desktop dev
 ```
 
-初回起動時、デスクトップアプリは Rakazo をこのコンピューターで動かすか、既存のサーバーに接続するかを
+初回起動時、デスクトップアプリは RabbitBots をこのコンピューターで動かすか、既存のサーバーに接続するかを
 尋ねます。**This computer**（このコンピューター）を選ぶと、アプリのデータディレクトリに Docker Compose で公開イメージを
 インストールして起動します（`infra/compose/install-images.sh` と同じファイルを使います）。そのため Docker Desktop、
 OrbStack、Docker Engine のいずれかが必要です。インストールされていない場合、アプリからそれらへのリンクを案内します。インストール済みの
 ビルドはイメージタグを自身のバージョンに固定し、パッケージ化されていないビルドは `edge` を取得します。
 `pnpm dev` を実行している開発者は、代わりに **Existing instance**（既存のインスタンス）を選び `http://127.0.0.1:5173` を指定してください。公開サーバーは
 HTTPS を使う必要があります。HTTP はループバックとプライベート LAN のアドレスでのみ受け付けます（リンクローカルは除く）。
-アプリは保存前に Rakazo のヘルスチェックエンドポイントを確認し、以降の起動ではそのインスタンスに直接接続します。
+アプリは保存前に RabbitBots のヘルスチェックエンドポイントを確認し、以降の起動ではそのインスタンスに直接接続します。
 アプリを終了してもスタックは動き続けます。停止するには、アプリケーションメニューの **Stop Local Stack**（ローカルスタックを停止）を使います。
 
 Linux では、デスクトップアプリは AppImage として配布されており、FUSE 2（`libfuse.so.2`）が必要です。Fedora Silverblue や
@@ -255,14 +249,14 @@ Ubuntu 24.04 では `libfuse2t64`、それ以前の Ubuntu や Debian では `li
 AppImage を実行してください。
 
 ```bash
-chmod +x Rakazo-*.AppImage
-./Rakazo-*.AppImage --appimage-extract-and-run
+chmod +x RabbitBots-*.AppImage
+./RabbitBots-*.AppImage --appimage-extract-and-run
 ```
 
 **This computer** は `docker` CLI を探し、Podman は検出しません。`compose` コマンドに対応した別の
 Docker 互換 CLI を試すには、アプリを起動する前に `RAKAZO_DOCKER_BINARY` にそのパスを設定してください。
 
-接続先を変えるには、アプリケーションメニューの **Change Rakazo Server…**（Rakazo サーバーを変更）を使います。保存せずに
+接続先を変えるには、アプリケーションメニューの **Change RabbitBots Server…**（RabbitBots サーバーを変更）を使います。保存せずに
 そのウィンドウを閉じると、以前のインスタンスに戻ります。開発の自動化では、`RAKAZO_WEB_URL` を設定すると
 保存済みのインスタンスを変えずにシェルの接続先を変更でき、`RAKAZO_FORCE_SETUP=1` を設定するとセットアップを
 再実行できます。
@@ -311,9 +305,8 @@ pnpm test:e2e
 - [パフォーマンステスト](./docs/performance.md)
 - [ボットを管理するボット](./docs/fleet-management.md)
 
-## Rakazo と他製品の比較
+## RabbitBots と他製品の比較
 
-- [Grok Bot](https://rakazo.com/grok-bot-alternative/)
 - [Muse](https://rakazo.com/muse-alternative/)
 - [Dots](https://rakazo.com/dots-alternative/)
 - [Instinct](https://rakazo.com/instinct-alternative/)
@@ -348,6 +341,6 @@ pnpm test:e2e
 コントリビューションを歓迎します。プルリクエストを作成する前に [CONTRIBUTING.md](./CONTRIBUTING.md) をお読みください。
 セキュリティ上の脆弱性は、公開の Issue を作成せず、[SECURITY.md](./SECURITY.md) の手順に従って報告してください。
 
-Rakazo は [Apache License 2.0](./LICENSE) のもとでライセンスされています。
+RabbitBots は [Apache License 2.0](./LICENSE) のもとでライセンスされています。
 
-質問やアイデアは [Rakazo Discord コミュニティ](https://discord.gg/RWwKa2Sn7h)でお気軽にどうぞ。
+質問やアイデアは [RabbitBots Discord コミュニティ](https://discord.gg/RWwKa2Sn7h)でお気軽にどうぞ。

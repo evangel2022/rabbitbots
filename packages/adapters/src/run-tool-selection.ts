@@ -166,6 +166,7 @@ export function selectBuiltinToolsForRun(options: {
       (options.trigger !== "created" || CREATED_RUN_TOOL_NAMES.has(tool.name)) &&
       (options.trigger !== BACKGROUND_HELPER_TRIGGER ||
         BACKGROUND_HELPER_TOOL_NAMES.has(tool.name)) &&
+      (options.trigger !== "meeting_turn" || tool.name !== "ask_user") &&
       (!FLEET_TOOL_NAMES_SET.has(tool.name) ||
         (Boolean(options.fleetManagement) && ownerStartedRun)) &&
       (ownerStartedRun || (tool.name !== "update_preferences" && tool.name !== "feedback")) &&

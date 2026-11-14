@@ -10,7 +10,16 @@ function fixture(tools: ConnectorTool[] = []) {
   return {
     runId: "run-1",
     tools: { offered: tools },
-    state: { effects: { occurrences: [], counts: new Map(), restoredPending: undefined } },
+    state: {
+      effects: {
+        occurrences: [],
+        counts: new Map(),
+        restoredPending: undefined,
+        pendingToolInvocationIds: new Map(),
+        pendingToolInvocationMeta: new Map(),
+        invocationSequence: 0,
+      },
+    },
   } as unknown as RunContext;
 }
 const tool = (name: string): ConnectorTool => ({
@@ -102,4 +111,52 @@ it("reports a pinned turn whose pending tool is offline as unavailable, not inco
     ),
   ).toThrow(PausedTurnToolsUnavailableError);
   expect(restoreTurnCheckpointEffects(fixture(), checkpoint("desktop_run"), model)).toBeUndefined();
+});
+
+it("restores the durable invocation id for the pending tool call", () => {
+  const ctx = fixture([tool("fixture_tool")]);
+  const saved = JSON.parse(checkpoint("fixture_tool"));
+  saved.effectOccurrences = [];
+  saved.pendingToolInvocationId = "invocation-1";
+  const blob = JSON.stringify(saved);
+  expect(restoreTurnCheckpointEffects(ctx, blob, model)).toBe(blob);
+  expect(
+    ctx.state.effects.pendingToolInvocationIds.get(JSON.stringify(["pi-tool", "main", "pending"])),
+  ).toBe("invocation-1");
+});
+
+it("restores every parallel pending invocation and its order", () => {
+  const ctx = fixture([tool("fixture_tool")]);
+  const saved = JSON.parse(checkpoint("fixture_tool"));
+  saved.effectOccurrences = [];
+  saved.pendingToolInvocations = [
+    {
+      invocationId: "invocation-a",
+      executionId: JSON.stringify(["pi-tool", "main", "call-a"]),
+      toolName: "fixture_tool",
+      toolCallIndex: 0,
+      runtimeDepth: 0,
+      toolCallSequence: 4,
+      invocationSequence: 4,
+    },
+    {
+      invocationId: "invocation-b",
+      executionId: JSON.stringify(["pi-tool", "helper", "call-b"]),
+      toolName: "fixture_tool",
+      toolCallIndex: 1,
+      runtimeDepth: 1,
+      parentInvocationId: "parent-invocation",
+      invocationSequence: 5,
+    },
+  ];
+  const blob = JSON.stringify(saved);
+  expect(restoreTurnCheckpointEffects(ctx, blob, model)).toBe(blob);
+  expect(ctx.state.effects.pendingToolInvocationMeta.size).toBe(2);
+  expect(
+    ctx.state.effects.pendingToolInvocationIds.get(JSON.stringify(["pi-tool", "main", "call-a"])),
+  ).toBe("invocation-a");
+  expect(
+    ctx.state.effects.pendingToolInvocationIds.get(JSON.stringify(["pi-tool", "helper", "call-b"])),
+  ).toBe("invocation-b");
+  expect(ctx.state.effects.invocationSequence).toBe(5);
 });

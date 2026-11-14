@@ -18,6 +18,16 @@ export interface ComputerModeCheckpoint {
 }
 
 /** Internal, versioned transcript; never a client event payload. */
+export interface PendingToolInvocationCheckpoint {
+  invocationId: string;
+  executionId: string;
+  toolName: string;
+  toolCallIndex?: number | null;
+  runtimeDepth?: number;
+  parentInvocationId?: string | null;
+  invocationSequence?: number | null;
+}
+
 export interface TurnCheckpoint {
   version: 1;
   /** Credential-free role state; absent on legacy checkpoints. */
@@ -26,6 +36,10 @@ export interface TurnCheckpoint {
   model: string;
   systemPrompt: string;
   pendingToolCallId: string;
+  /** Legacy single-call field retained for checkpoints written before R3. */
+  pendingToolInvocationId?: string;
+  /** Runtime-generated durable identities for all pending calls, including parallel calls. */
+  pendingToolInvocations?: PendingToolInvocationCheckpoint[];
   messages: Message[];
   historyMessageIds?: string[];
   /** The instructions the saved system prompt was built from; own writes resume guarding on it. */
@@ -82,4 +96,38 @@ export function unresolvedTurnCheckpointCalls(messages: Message[]): ToolCall[] {
     }
   }
   return [...pending.values()];
+}
+
+/**
+ * The Pi runtime resumes exactly one pending wire call (`pendingToolCallId`).
+ * Other pending collection entries must not be treated as resumable.
+ */
+export function resumableInvocationIdsOf(checkpoint: string | undefined): Set<string> {
+  if (!checkpoint) return new Set();
+  try {
+    const parsed = JSON.parse(checkpoint) as {
+      pendingToolCallId?: unknown;
+      pendingToolInvocationId?: unknown;
+      pendingToolInvocations?: Array<{ invocationId?: unknown; executionId?: unknown }>;
+    };
+    if (Array.isArray(parsed.pendingToolInvocations)) {
+      const pendingExecutionId =
+        typeof parsed.pendingToolCallId === "string"
+          ? JSON.stringify(["pi-tool", "main", parsed.pendingToolCallId])
+          : undefined;
+      const match = parsed.pendingToolInvocations.find(
+        (entry) =>
+          typeof entry.invocationId === "string" &&
+          pendingExecutionId !== undefined &&
+          entry.executionId === pendingExecutionId,
+      );
+      if (match && typeof match.invocationId === "string") return new Set([match.invocationId]);
+    }
+    if (typeof parsed.pendingToolInvocationId === "string") {
+      return new Set([parsed.pendingToolInvocationId]);
+    }
+    return new Set();
+  } catch {
+    return new Set();
+  }
 }

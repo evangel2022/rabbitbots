@@ -10,6 +10,7 @@ import { desktopBridge } from "./desktop.js";
 import { DesktopSpeechRecognition } from "./desktop-speech.js";
 import { getActiveUiLocale } from "./i18n.js";
 import { selectedSpaceId, withSpaceHeaders } from "./rpc.js";
+import { normalizeUiLocale } from "./ui-locale.js";
 import { errorText, voiceAccountErrorText } from "./user-error.js";
 
 export type DictationMode = "hold" | "endpoint";
@@ -110,7 +111,8 @@ export function recognitionLanguage(): string {
  * (`es`, `pt`, `zh`). Undefined leaves detection to the provider.
  */
 export function transcriptionLanguage(): string | undefined {
-  const tag = speechLocaleTag(getActiveUiLocale());
+  // Provider hint follows the speaker's browser language, not the UI language.
+  const tag = speechLocaleTag(normalizeUiLocale(navigator.language || getActiveUiLocale()));
   return tag ? tag.split("-")[0]?.toLowerCase() : undefined;
 }
 

@@ -1,10 +1,10 @@
-# Contributing to Rakazo
+# Contributing to RabbitBots
 
-Thanks for helping improve Rakazo. Keep changes focused and testable.
+Thanks for helping improve RabbitBots. Keep changes focused and testable.
 
 ## Run locally
 
-Follow the [source checkout setup](README.md#local-development-source-checkout) for prerequisites,
+Follow the [source checkout setup](README.md#option-b--source-checkout-in-wsl-or-linux) for prerequisites,
 required secrets, and startup commands.
 
 For a new Git worktree, run `pnpm setup:worktree`. It copies the main checkout's local

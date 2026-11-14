@@ -331,6 +331,7 @@ export const taskTools: ToolHandlers = {
         description: String(args.description ?? ""),
         acceptanceCriteria: String(args.acceptanceCriteria ?? ""),
         priority: args.priority ? String(args.priority) : "NORMAL",
+        toolInvocationId: call.invocationId,
       },
     );
     return call.finish({

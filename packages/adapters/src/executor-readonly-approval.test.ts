@@ -383,7 +383,11 @@ function fixture({
           (row) => matches(row.id, where.id) && matches(row.name, where.name),
         );
       }),
-      findUnique: vi.fn(async () => ({ ...liveBot })),
+      findUnique: vi.fn(async () => ({
+        ...liveBot,
+        name: bot.name,
+        description: bot.description,
+      })),
     },
     attempt: {
       create: vi.fn(async () => ({ id: "attempt-1" })),
@@ -1573,7 +1577,7 @@ describe("own instructions through update_bot", () => {
   it("sets them after a profile edit earlier in the run", async () => {
     const f = emptyBot({ autoReview: true });
     f.setCalls([
-      { args: { description: "Drafts replies" }, executionId: "call-1" },
+      { args: { notifyOnFinish: false }, executionId: "call-1" },
       { args: { instructions: first }, executionId: "call-2" },
     ]);
     await f.run();
@@ -1947,7 +1951,10 @@ describe("own instructions through update_bot", () => {
     f.setCalls([{ args: { name: "Scout", instructions: first }, executionId: "call-1" }]);
     await f.run();
     expect(f.results).toEqual([
-      { error: "Change your instructions in their own update_bot call." },
+      {
+        error:
+          "Change your name or description in its own update_bot call, without instructions or other settings.",
+      },
     ]);
     expect(f.effects).toEqual([]);
   });
@@ -2117,13 +2124,13 @@ describe("own settings through update_bot", () => {
   it("treats its own id in bot_id as its own settings", async () => {
     const f = fixture({ name: "update_bot", builtin: true });
     f.setCalls([
-      { args: { bot_id: " bot-1 ", name: "Scout" }, executionId: "call-1" },
+      { args: { bot_id: " bot-1 ", notifyOnFinish: false }, executionId: "call-1" },
       { args: { bot_id: "bot-1", readAloud: true }, executionId: "call-2" },
     ]);
     await f.run();
     // Not refused as bot management (off here), and its own edit counts as no outside content.
     expect(f.results).toEqual([
-      expect.objectContaining({ ok: true, name: "Scout" }),
+      expect.objectContaining({ ok: true }),
       { ok: true, readAloud: true },
     ]);
     expect(f.prisma.bot.update).toHaveBeenCalledWith(
@@ -2281,7 +2288,7 @@ describe("bot management tool gating", () => {
         fleetManagement: true,
         rules: [{ effect: "require_approval", matchKind: "tool", matchValue: "update_bot" }],
       });
-      f.setCalls([{ args: { bot_id: "child-1", name: "New name" }, executionId: "call-1" }]);
+      f.setCalls([{ args: { bot_id: "child-1", notifyOnFinish: false }, executionId: "call-1" }]);
       await f.run();
       expect(f.effects).toHaveLength(1);
       f.effects[0]!.status = "approved";
@@ -2289,7 +2296,7 @@ describe("bot management tool gating", () => {
       if (gate === "channel") f.claimedOutsideSteering(true);
       f.setCalls([
         {
-          args: { name: "Self edit" },
+          args: { notifyOnFinish: true },
           executionId:
             gate === "helper" ? JSON.stringify(["pi-tool", "helper-call", "call-2"]) : "call-2",
         },

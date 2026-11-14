@@ -179,6 +179,28 @@ async function findPendingAsk(
   return null;
 }
 
+/** The card's proposed identity must be the exact request the approval effect stores. */
+function sameIdentityChange(
+  stored: unknown,
+  card: {
+    botId: string;
+    beforeName: string;
+    beforeDescription: string;
+    name?: string;
+    description?: string;
+  },
+): boolean {
+  if (!stored || typeof stored !== "object" || Array.isArray(stored)) return false;
+  const value = stored as Record<string, unknown>;
+  return (
+    value.botId === card.botId &&
+    value.beforeName === card.beforeName &&
+    value.beforeDescription === card.beforeDescription &&
+    value.name === card.name &&
+    value.description === card.description
+  );
+}
+
 async function commitAnswerRunInput(
   tx: Prisma.TransactionClient,
   input: AnswerRunInput,
@@ -298,6 +320,18 @@ async function commitAnswerRunInput(
         pendingAsk.instructionUpdate.botId !== run.botId ||
         (approvalAnswer !== "allow" && approvalAnswer !== "deny") ||
         run.userId !== input.answeredByUserId
+      )
+        return null;
+    }
+    if (pendingAsk.identityUpdate) {
+      const stored = (approvalEffect.request as { identityUpdate?: unknown } | null)
+        ?.identityUpdate;
+      if (
+        approvalEffect.kind !== "update_bot" ||
+        pendingAsk.identityUpdate.botId !== run.botId ||
+        run.userId !== input.answeredByUserId ||
+        (approvalAnswer !== "allow" && approvalAnswer !== "deny") ||
+        !sameIdentityChange(stored, pendingAsk.identityUpdate)
       )
         return null;
     }

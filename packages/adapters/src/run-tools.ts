@@ -1,8 +1,10 @@
+import { randomUUID } from "node:crypto";
 import type { AgentToolExecutionObserver } from "@rakazo/adapter-kit";
 import { BACKGROUND_HELPER_TRIGGER, toolResultTaintsRun } from "@rakazo/core";
 import { isTerminatingReplyResult } from "./approval-effect.js";
 import { IMAGE_RETURNING_COMPUTER_TOOLS, MODEL_CANNOT_SEE_MESSAGE } from "./model-vision.js";
 import type { RunContext } from "./run-context.js";
+import { persistTurnCheckpoint } from "./run-context.js";
 import { noteComputerTaskStep } from "./run-progress.js";
 import type { ToolHandler } from "./run-tool-gate.js";
 import { auditToolCall, gateToolCall } from "./run-tool-gate.js";
@@ -34,7 +36,20 @@ import {
   userComputerShell,
 } from "./run-tools-user-computer.js";
 import { strategicInitiativeToolAllowed } from "./strategic-initiative.js";
+import {
+  claimToolInvocation,
+  completeToolInvocation,
+  failToolInvocation,
+  markToolHandlerStarted,
+  markToolInvocationUncertain,
+  prepareToolInvocation,
+  recoverToolInvocationResult,
+  renewToolInvocationLease,
+  rewindToolInvocationForSafeRetry,
+} from "./tool-invocations.js";
+import type { PendingToolInvocationCheckpoint } from "./turn-checkpoint.js";
 import { argumentGiven } from "./update-bot-patch.js";
+import { recoverDelegatedTaskForInvocation } from "./workforce-tasks.js";
 
 const TOOL_HANDLERS = new Map<string, ToolHandler>([
   ...Object.entries(computerTools),
@@ -60,6 +75,17 @@ function toolHandler(name: string): ToolHandler {
   return (
     TOOL_HANDLERS.get(name) ?? (name.startsWith("cloud_agent_") ? cloudAgentTool : connectorTool)
   );
+}
+
+/** Nested helper calls carry a non-main namespace; depth 0 is the root agent. */
+function runtimeDepthOf(executionId: string) {
+  try {
+    const parsed = JSON.parse(executionId) as unknown;
+    if (!Array.isArray(parsed) || parsed[0] !== "pi-tool") return 0;
+    return parsed[1] === "main" ? 0 : 1;
+  } catch {
+    return 0;
+  }
 }
 
 /** Run one tool call of this run's model: gate it, then hand it to its tool family. */
@@ -138,17 +164,220 @@ async function dispatchTool(
   noteComputerTaskStep(ctx.state.reply, request.name);
   const gate = await gateToolCall(ctx, request, observer);
   if ("result" in gate) return gate.result;
-  if (!gate.call.applied) return toolHandler(gate.call.name)(ctx, gate.call);
-  let outcome: "success" | "failure" = "failure";
+  const handler = toolHandler(gate.call.name);
+  // Test doubles and non-runtime callers do not carry the durable invocation table.
+  if (!ctx.deps.prisma.toolInvocation) {
+    if (!gate.call.applied) return handler(ctx, gate.call);
+    let outcome: "success" | "failure" = "failure";
+    try {
+      const result = await handler(ctx, gate.call);
+      if (!isToolError(result)) outcome = "success";
+      return result;
+    } finally {
+      await auditToolCall(ctx, gate.call.name, outcome, {
+        effectId: gate.call.applied.effect.id,
+        autoApproved: gate.call.bypassApproval,
+      });
+    }
+  }
+
+  const { effects } = ctx.state;
+  const restoredInvocationId = effects.pendingToolInvocationIds.get(executionId);
+  const invocationId = restoredInvocationId ?? randomUUID();
+  effects.pendingToolInvocationIds.set(executionId, invocationId);
+  effects.invocationSequence = (effects.invocationSequence ?? 0) + 1;
+  const pendingMeta: PendingToolInvocationCheckpoint = {
+    invocationId,
+    executionId,
+    toolName: gate.call.name,
+    toolCallIndex: effects.invocationSequence,
+    runtimeDepth: runtimeDepthOf(executionId),
+    parentInvocationId: null,
+    invocationSequence: effects.invocationSequence,
+  };
+  effects.pendingToolInvocationMeta.set(executionId, pendingMeta);
+  let prepared: Awaited<ReturnType<typeof prepareToolInvocation>>;
   try {
-    const result = await toolHandler(gate.call.name)(ctx, gate.call);
+    // A delegation transaction may commit before its invocation result can be stored. The
+    // delegation row is stronger evidence than the stale invocation state, so return its
+    // original child without re-entering the handler or creating another child.
+    if (restoredInvocationId && gate.call.name === "delegate_task") {
+      const recovered = await recoverDelegatedTaskForInvocation(ctx.deps.prisma, {
+        spaceId: ctx.run.spaceId,
+        invocationId: restoredInvocationId,
+        args: gate.call.args,
+      });
+      if (recovered) {
+        const result = {
+          taskId: recovered.id,
+          assigneeBotId: recovered.assigneeBotId,
+          assigneeBotName: recovered.assigneeBotName,
+          status: recovered.executionStatus,
+        };
+        await recoverToolInvocationResult(ctx.deps.prisma, {
+          spaceId: ctx.run.spaceId,
+          invocationId: restoredInvocationId,
+          result,
+          secrets: ctx.secrets,
+        });
+        return result;
+      }
+      // No delegation row exists, so the delegation transaction did not commit. Its
+      // business transaction is atomic, which makes a replay of this handler safe.
+      await rewindToolInvocationForSafeRetry(ctx.deps.prisma, {
+        spaceId: ctx.run.spaceId,
+        invocationId: restoredInvocationId,
+      });
+    }
+    // Persist the assistant tool call and its runtime invocation id before creating the
+    // execution row. A resumed pending call therefore knows the id even if the row write
+    // was interrupted, while the handler still cannot run before the row is persisted.
+    if (effects.pendingTurnCheckpoints.has(executionId)) {
+      await persistTurnCheckpoint(ctx, executionId);
+    }
+    prepared = await prepareToolInvocation(ctx.deps.prisma, {
+      spaceId: ctx.run.spaceId,
+      runId: ctx.runId,
+      toolName: gate.call.name,
+      args: gate.call.args,
+      secrets: ctx.secrets,
+      providerToolCallId: executionId,
+      invocationId,
+      turnId: ctx.attempt?.id ?? null,
+      toolCallIndex: pendingMeta.toolCallIndex,
+      runtimeDepth: pendingMeta.runtimeDepth,
+      parentInvocationId: pendingMeta.parentInvocationId,
+      invocationSequence: pendingMeta.invocationSequence,
+      recovered: Boolean(restoredInvocationId),
+    });
+    if (prepared.terminal) return prepared.result;
+
+    const claim = await claimToolInvocation(ctx.deps.prisma, {
+      id: prepared.row.id,
+      workerId: ctx.workerId,
+      fence: ctx.fence,
+      reclaim: prepared.reclaim,
+    });
+    if (!claim.claimed) {
+      prepared = await prepareToolInvocation(ctx.deps.prisma, {
+        spaceId: ctx.run.spaceId,
+        runId: ctx.runId,
+        toolName: gate.call.name,
+        args: gate.call.args,
+        secrets: ctx.secrets,
+        providerToolCallId: executionId,
+        invocationId: prepared.row.invocationId,
+      });
+      if (prepared.terminal) return prepared.result;
+      return { error: "This tool invocation is already being executed." };
+    }
+
+    const invocationRow = prepared.row;
+    // Persist the handler boundary before any handler code runs. If this write is
+    // lost, no handler is invoked and recovery may safely reclaim the CLAIMED row.
+    try {
+      await markToolHandlerStarted(ctx.deps.prisma, {
+        id: invocationRow.id,
+        workerId: ctx.workerId,
+        fence: claim.fencingToken,
+      });
+    } catch (error) {
+      await markToolInvocationUncertain(
+        ctx.deps.prisma,
+        prepared.row.id,
+        error instanceof Error ? error.message : String(error),
+      ).catch(() => undefined);
+      throw error;
+    }
+
+    let leaseLost = false;
+    let leaseRenewing = false;
+    const leaseTimer = setInterval(() => {
+      if (leaseRenewing || leaseLost) return;
+      leaseRenewing = true;
+      void renewToolInvocationLease(ctx.deps.prisma, {
+        id: invocationRow.id,
+        workerId: ctx.workerId,
+        fence: claim.fencingToken,
+      })
+        .then((renewed) => {
+          if (!renewed) {
+            leaseLost = true;
+            ctx.runtimeAbortController.abort(
+              new Error("Tool invocation execution lease was lost."),
+            );
+          }
+        })
+        .catch(() => {
+          leaseLost = true;
+        })
+        .finally(() => {
+          leaseRenewing = false;
+        });
+    }, 5_000);
+    leaseTimer.unref?.();
+
+    const handlerCall = { ...gate.call, invocationId: invocationRow.invocationId };
+    let outcome: "success" | "failure" = "failure";
+    let result: unknown;
+    try {
+      result = await handler(ctx, handlerCall);
+    } catch (error) {
+      if (leaseLost) {
+        await markToolInvocationUncertain(
+          ctx.deps.prisma,
+          invocationRow.id,
+          "The tool handler may have started after its execution lease was lost.",
+        ).catch(() => undefined);
+      } else {
+        await failToolInvocation(ctx.deps.prisma, {
+          id: invocationRow.id,
+          workerId: ctx.workerId,
+          fence: claim.fencingToken,
+          error: error instanceof Error ? error.message : String(error),
+        }).catch(() => undefined);
+      }
+      throw error;
+    } finally {
+      clearInterval(leaseTimer);
+    }
+    if (leaseLost) {
+      await markToolInvocationUncertain(
+        ctx.deps.prisma,
+        invocationRow.id,
+        "The tool handler completed after its execution lease was lost; its effect is uncertain.",
+      ).catch(() => undefined);
+      throw new Error("Tool invocation lease was lost while the handler was running.");
+    }
+    try {
+      await completeToolInvocation(ctx.deps.prisma, {
+        id: invocationRow.id,
+        workerId: ctx.workerId,
+        fence: claim.fencingToken,
+        result,
+        secrets: ctx.secrets,
+      });
+    } catch (error) {
+      // The handler returned, so the side effect is not provably absent. Preserve uncertainty
+      // instead of letting a later worker run it again.
+      await markToolInvocationUncertain(
+        ctx.deps.prisma,
+        invocationRow.id,
+        error instanceof Error ? error.message : String(error),
+      ).catch(() => undefined);
+      throw error;
+    }
     if (!isToolError(result)) outcome = "success";
+    if (gate.call.applied) {
+      await auditToolCall(ctx, gate.call.name, outcome, {
+        effectId: gate.call.applied.effect.id,
+        autoApproved: gate.call.bypassApproval,
+      });
+    }
     return result;
   } finally {
-    await auditToolCall(ctx, gate.call.name, outcome, {
-      effectId: gate.call.applied.effect.id,
-      autoApproved: gate.call.bypassApproval,
-    });
+    effects.pendingToolInvocationIds.delete(executionId);
+    effects.pendingToolInvocationMeta.delete(executionId);
   }
 }
 

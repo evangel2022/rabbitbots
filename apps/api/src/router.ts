@@ -50,6 +50,7 @@ import { meetingsRoutes } from "./routes/meetings.js";
 import { memoryRoutes } from "./routes/memory.js";
 import { messagingRoutes } from "./routes/messaging.js";
 import { modelsRoutes } from "./routes/models.js";
+import { networkProxyRoutes } from "./routes/network-proxy.js";
 import { onboardingRoutes } from "./routes/onboarding.js";
 import { orchestrationsRoutes } from "./routes/orchestrations.js";
 import { organizationsRoutes } from "./routes/organizations.js";
@@ -59,6 +60,7 @@ import { routinesRoutes } from "./routes/routines.js";
 import { spacesRoutes } from "./routes/spaces.js";
 import { spendingLimitRoutes } from "./routes/spending-limit.js";
 import { threadsRoutes } from "./routes/threads.js";
+import { userNetworkProxyRoutes } from "./routes/user-network-proxy.js";
 import { workforceRoutes } from "./routes/workforce.js";
 import type { VoiceDeps } from "./voice.js";
 
@@ -174,6 +176,8 @@ export function createRouter(deps: RouterDeps) {
     ...threadsRoutes(ctx),
     ...computerRoutes(ctx),
     ...computerProviderRoutes(ctx),
+    ...networkProxyRoutes(ctx),
+    ...userNetworkProxyRoutes(ctx),
     ...memoryRoutes(ctx),
     ...routinesRoutes(ctx),
     ...boardsRoutes(ctx),

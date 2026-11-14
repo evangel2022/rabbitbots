@@ -711,6 +711,19 @@ describe("thread event reduction", () => {
     expect(started?.run?.trigger).toBe("bot_message");
   });
 
+  it("preserves a workforce task trigger when event-sourcing the run", () => {
+    const started = reduceThreadSnapshot(
+      snapshot([]),
+      event({
+        type: "run.started",
+        runId: "workforce-run-1",
+        payload: { trigger: "workforce_task" },
+      }),
+    );
+
+    expect(started?.run?.trigger).toBe("workforce_task");
+  });
+
   it("preserves webhook when event-sourcing an inbound wake", () => {
     const started = reduceThreadSnapshot(
       snapshot([]),
