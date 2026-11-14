@@ -5,6 +5,7 @@ import type * as ComputerLifecycle from "../../adapters/src/computer-lifecycle.j
 import { createRunExecutor } from "../../adapters/src/executor.js";
 import { PiAgentRuntime } from "../../adapters/src/pi-runtime.js";
 import { startModelEmulator } from "./model-emulator.js";
+import { createFakeToolInvocationModel } from "./test-support/tool-invocation-model.js";
 
 vi.mock("../../adapters/src/computer-lifecycle.js", async (original) => ({
   ...(await original<typeof ComputerLifecycle>()),
@@ -75,8 +76,10 @@ function fixture(
     count: async () => 0,
     updateMany: async () => ({ count: 0 }),
   };
+  const toolInvocation = createFakeToolInvocationModel();
   const prisma = new Proxy(
     {
+      toolInvocation,
       $contentEncryption: () =>
         encryptedCheckpoint
           ? {
