@@ -406,6 +406,15 @@ export async function startWorkforceExecutionInTransaction(
 }
 
 function actionResult(text: string): { resultStatus: string; summary: string; evidence: string[] } {
+  // The runtime's empty-completion fallback is not a model result. Do not let an
+  // empty provider response become a successful Workforce result.
+  if (!text.trim() || text.trim() === "No response. Try again.") {
+    return {
+      resultStatus: "FAILED",
+      summary: "The model returned no response. The task did not produce a result.",
+      evidence: [],
+    };
+  }
   let object: Record<string, unknown> | null = null;
   try {
     const start = text.indexOf("{");
@@ -763,22 +772,18 @@ export async function reconcileWorkforceTask(deps: WorkforceDeps, taskId: string
   }
   const parsed = actionResult(outcome.text);
   const failed = parsed.resultStatus === "FAILED" || parsed.resultStatus === "BLOCKED";
-  const delegatedChild = task.source === "BOT_DELEGATED";
+  const waiting = task.waitingForChildren;
+  // Executing successfully is not the same as the human CEO accepting the result.
+  // A terminal run marks the task complete even when acceptance is still pending.
   await deps.prisma.workforceTask.update({
     where: { id: task.id },
     data: {
-      status: task.waitingForChildren
-        ? "WAITING_FOR_CHILDREN"
-        : failed
-          ? "BLOCKED"
-          : delegatedChild
-            ? "COMPLETED"
-            : "IN_PROGRESS",
+      status: waiting ? "WAITING_FOR_CHILDREN" : failed ? "BLOCKED" : "COMPLETED",
       resultStatus: parsed.resultStatus,
       resultSummary: parsed.summary,
       evidence: parsed.evidence,
       blockedReason: failed ? parsed.summary : null,
-      completedAt: delegatedChild ? (run.completedAt ?? new Date()) : null,
+      completedAt: waiting || failed ? null : (run.completedAt ?? new Date()),
     },
   });
   if (attempt) {
@@ -841,7 +846,7 @@ export async function acceptWorkforceTask(
   }
   if (
     input.action === "ACCEPT" &&
-    (task.status !== "IN_PROGRESS" ||
+    ((task.status !== "IN_PROGRESS" && task.status !== "COMPLETED") ||
       (task.resultStatus !== "SUCCESS" && task.resultStatus !== "PARTIAL"))
   ) {
     throw new Error("Only a submitted SUCCESS or PARTIAL result can be accepted.");

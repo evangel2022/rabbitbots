@@ -31,6 +31,41 @@ describe("classifyModelConnectionFailure", () => {
     );
   });
 
+  it("explains the deployment flag for a refused local endpoint", () => {
+    const failure = classifyModelConnectionFailure(
+      new Error(
+        "Private model endpoints need MCP_ALLOW_PRIVATE_ENDPOINT=true on the API and worker.",
+      ),
+    );
+    expect(failure.outcome).toBe("private_endpoint");
+    expect(failure.nextAction).toContain("MCP_ALLOW_PRIVATE_ENDPOINT=true");
+    expect(failure.nextAction).toContain("API and Worker");
+  });
+
+  it.each([
+    ["connect ECONNREFUSED 127.0.0.1:11434", "connection_refused"],
+    ["getaddrinfo ENOTFOUND ollama.local", "dns"],
+    ["fetch failed: temporary failure in name resolution", "dns"],
+    ["The server URL is invalid", "invalid_url"],
+    ["model_not_found: qwen-nope", "model_not_found"],
+    ["502 Bad Gateway from upstream", "provider_response"],
+    ["401 Unauthorized: invalid api key", "unauthorized"],
+    ["The request timed out", "timeout"],
+    ["fetch failed", "unreachable"],
+  ])("classifies %s as %s", (message, outcome) => {
+    const failure = classifyModelConnectionFailure(new Error(message));
+    expect(failure.outcome).toBe(outcome);
+    expect(failure.nextAction.length).toBeGreaterThan(0);
+  });
+
+  it("redacts API keys from classified model errors", () => {
+    const failure = classifyModelConnectionFailure(
+      new Error("401 Unauthorized: invalid api key sk-live-secret-1234567890"),
+    );
+    expect(failure.message).not.toContain("sk-live-secret-1234567890");
+    expect(failure.nextAction).not.toContain("sk-live-secret-1234567890");
+  });
+
   it("keeps manual model entry for custom servers and catalog picks for catalog providers", () => {
     expect(unavailableSelectedModel("gpt-missing", ["gpt-test"])?.nextAction).toMatch(
       /enter a model id/,

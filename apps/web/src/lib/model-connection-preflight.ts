@@ -6,9 +6,15 @@ type ModelPreflightOutcome =
   | "rate_limit"
   | "unauthorized"
   | "unavailable_model"
+  | "connection_refused"
+  | "dns"
+  | "invalid_url"
+  | "model_not_found"
+  | "provider_response"
   | "unreachable"
   | "needs_sign_in"
   | "missing_fields"
+  | "private_endpoint"
   | "unknown";
 
 export type ModelPreflightFailure = {
@@ -60,6 +66,25 @@ export function classifyModelConnectionFailure(
     }
   }
 
+  if (
+    lower.includes("invalid url") ||
+    lower.includes("url is invalid") ||
+    lower.includes("url is not valid") ||
+    lower.includes("invalid endpoint") ||
+    lower.includes("invalid base url") ||
+    lower.includes("not a valid url") ||
+    lower.includes("must use https") ||
+    lower.includes("url must use") ||
+    lower.includes("unsupported protocol") ||
+    lower.includes("url scheme")
+  ) {
+    return {
+      outcome: "invalid_url",
+      message: message || t`The server URL is invalid.`,
+      nextAction: t`Use the full base URL, including /v1 and the http or https scheme.`,
+    };
+  }
+
   if (lower.includes("timed out") || lower.includes("timeout")) {
     return {
       outcome: "timeout",
@@ -90,13 +115,74 @@ export function classifyModelConnectionFailure(
     };
   }
 
+  if (lower.includes("mcp_allow_private_endpoint") || lower.includes("private model endpoint")) {
+    return {
+      outcome: "private_endpoint",
+      message: message || t`Local model endpoint is not allowed by this deployment.`,
+      nextAction: t`Set MCP_ALLOW_PRIVATE_ENDPOINT=true on both API and Worker, then restart the services.`,
+    };
+  }
+
   if (
-    lower.includes("econnrefused") ||
-    lower.includes("connection refused") ||
-    lower.includes("failed to fetch") ||
-    lower.includes("network") ||
+    lower.includes("model_not_found") ||
+    lower.includes("model not found") ||
+    lower.includes("no such model")
+  ) {
+    return {
+      outcome: "model_not_found",
+      message: message || t`The model was not found on this server.`,
+      nextAction: t`Use Find models or enter an exact model id returned by the server.`,
+    };
+  }
+
+  if (
     lower.includes("enotfound") ||
-    lower.includes("could not reach")
+    lower.includes("eai_again") ||
+    lower.includes("getaddrinfo") ||
+    lower.includes("name or service not known") ||
+    lower.includes("temporary failure in name resolution") ||
+    lower.includes("no such host") ||
+    lower.includes("could not resolve host")
+  ) {
+    return {
+      outcome: "dns",
+      message: message || t`The model server hostname could not be resolved.`,
+      nextAction: t`Check the hostname and DNS/VPN settings, then test again.`,
+    };
+  }
+
+  if (lower.includes("econnrefused") || lower.includes("connection refused")) {
+    return {
+      outcome: "connection_refused",
+      message: message || t`The model server refused the connection.`,
+      nextAction: t`Confirm the server is running and listening on the URL and port you entered.`,
+    };
+  }
+
+  if (
+    /\b5[0-9]{2}\b/.test(lower) ||
+    lower.includes("bad gateway") ||
+    lower.includes("service unavailable") ||
+    lower.includes("gateway timeout") ||
+    lower.includes("provider error") ||
+    lower.includes("provider returned") ||
+    lower.includes("upstream") ||
+    lower.includes("server error")
+  ) {
+    return {
+      outcome: "provider_response",
+      message: message || t`The provider returned a server error.`,
+      nextAction: t`Check the provider status and server logs, then test again.`,
+    };
+  }
+
+  if (
+    lower.includes("failed to fetch") ||
+    lower.includes("fetch failed") ||
+    lower.includes("network") ||
+    lower.includes("could not reach") ||
+    lower.includes("ehostunreach") ||
+    lower.includes("enetunreach")
   ) {
     return {
       outcome: "unreachable",

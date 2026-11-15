@@ -13,6 +13,10 @@ Open **Settings → Models**. Under **Add provider**, pick a provider and connec
   machine. Paste the address, choose **Find models**, and pick one. Under **Advanced** you can set
   its context limit, whether it supports images, and its reasoning effort.
 
+A private or loopback model server also needs `MCP_ALLOW_PRIVATE_ENDPOINT=true` on both the API
+and worker, followed by a restart of both. See [self-hosted models](./self-host-models.md) for the
+Ollama URL, model-id, Docker and WSL2 boundaries.
+
 Connected providers are listed under **Providers** and are available in every [space](./spaces.md).
 
 > [!NOTE]

@@ -709,6 +709,136 @@ describePostgres("meeting decision approvals (PostgreSQL)", () => {
     ).resolves.toMatchObject({ acceptanceStatus: "CANCELLED", executionStatus: "BLOCKED" });
   });
 
+  itPostgres("completes a successful direct task before CEO acceptance", async () => {
+    const task = await createDirectWorkforceTask(prisma, {
+      spaceId,
+      userId,
+      title: "Direct completion task",
+      description: "Complete this task before acceptance.",
+      acceptanceCriteria: "A completed attempt is visible.",
+      assigneeBotId: researchBotId,
+      priority: "NORMAL",
+    });
+    const jobs = {
+      enqueue: vi.fn(async () => undefined),
+      cancel: vi.fn(async () => undefined),
+    } as unknown as JobPublisher;
+    const started = await executeWorkforceTask(
+      { prisma, jobs },
+      {
+        spaceId,
+        userId,
+        taskId: task.id,
+        clientNonce: "direct-complete-before-accept",
+      },
+    );
+    const runId = started.attempts[0]!.botRunId!;
+    const run = await prisma.run.findUniqueOrThrow({ where: { id: runId } });
+    const lastMessage = await prisma.message.findFirst({
+      where: { threadId: run.threadId },
+      orderBy: { seq: "desc" },
+      select: { seq: true },
+    });
+    await prisma.run.update({
+      where: { id: runId },
+      data: { status: "completed", completedAt: new Date() },
+    });
+    await prisma.message.create({
+      data: {
+        threadId: run.threadId,
+        seq: (lastMessage?.seq ?? 0) + 1,
+        role: "bot",
+        botId: researchBotId,
+        runId,
+        blocks: [
+          {
+            kind: "text",
+            text: JSON.stringify({
+              resultStatus: "SUCCESS",
+              summary: "The task completed before the CEO reviewed it.",
+              evidence: [],
+            }),
+          },
+        ],
+      },
+    });
+
+    await reconcileWorkforceTask({ prisma, jobs }, task.id);
+    const completed = await getWorkforceTaskView(prisma, spaceId, task.id);
+    expect(completed).toMatchObject({
+      executionStatus: "COMPLETED",
+      latestResultStatus: "SUCCESS",
+      latestResultSummary: "The task completed before the CEO reviewed it.",
+      acceptanceStatus: null,
+    });
+
+    const accepted = await acceptWorkforceTask(prisma, {
+      spaceId,
+      userId,
+      taskId: task.id,
+      action: "ACCEPT",
+      clientNonce: "direct-complete-accept",
+    });
+    expect(accepted).toMatchObject({
+      executionStatus: "COMPLETED",
+      acceptanceStatus: "ACCEPTED",
+    });
+  });
+
+  itPostgres("does not mark an empty model response as a successful task", async () => {
+    const task = await createDirectWorkforceTask(prisma, {
+      spaceId,
+      userId,
+      title: "Empty model response task",
+      description: "The model returns no text.",
+      acceptanceCriteria: "A result is returned.",
+      assigneeBotId: researchBotId,
+      priority: "NORMAL",
+    });
+    const jobs = {
+      enqueue: vi.fn(async () => undefined),
+      cancel: vi.fn(async () => undefined),
+    } as unknown as JobPublisher;
+    const started = await executeWorkforceTask(
+      { prisma, jobs },
+      {
+        spaceId,
+        userId,
+        taskId: task.id,
+        clientNonce: "direct-empty-model-response",
+      },
+    );
+    const runId = started.attempts[0]!.botRunId!;
+    const run = await prisma.run.findUniqueOrThrow({ where: { id: runId } });
+    const lastMessage = await prisma.message.findFirst({
+      where: { threadId: run.threadId },
+      orderBy: { seq: "desc" },
+      select: { seq: true },
+    });
+    await prisma.run.update({
+      where: { id: runId },
+      data: { status: "completed", completedAt: new Date() },
+    });
+    await prisma.message.create({
+      data: {
+        threadId: run.threadId,
+        seq: (lastMessage?.seq ?? 0) + 1,
+        role: "bot",
+        botId: researchBotId,
+        runId,
+        blocks: [{ kind: "text", text: "No response. Try again." }],
+      },
+    });
+
+    await reconcileWorkforceTask({ prisma, jobs }, task.id);
+    const result = await getWorkforceTaskView(prisma, spaceId, task.id);
+    expect(result).toMatchObject({
+      executionStatus: "BLOCKED",
+      latestResultStatus: "FAILED",
+      latestResultSummary: "The model returned no response. The task did not produce a result.",
+    });
+  });
+
   itPostgres("delegates a child from a real parent run and rejects self-delegation", async () => {
     const parent = await createDirectWorkforceTask(prisma, {
       spaceId,

@@ -178,7 +178,7 @@ After startup, open the printed URL and create an account. The first-run path is
 3. **Build Your AI Team** — keep the four default employees (CEO / Chair, Research, Finance, Operations), or rename them and adjust their responsibilities.
 4. **Connect Your AI Model** — use **Find models / test connection**, or skip for now. Skipping leaves the Company ready but disables task execution until a model is connected.
 5. **Create Your AI Company** — this is the explicit write action. It creates one Company profile, four AI Employees and a draft Executive Boardroom. Repeating it is idempotent and does not duplicate Bots.
-6. **Start Your First Task** — describe an outcome. RabbitBots creates a real Workforce task, assigns it to the CEO Assistant and starts the existing Worker path. If the task needs a site or an irreversible action, the existing approval rules still apply.
+6. **Start Your First Task** — describe an outcome. RabbitBots creates a real Workforce task, assigns it to the CEO / Chair employee and starts the existing Worker path. If the task needs a site or an irreversible action, the existing approval rules still apply.
 7. Follow the result in **AI Workforce**. The result remains `CEO: not accepted` until the human CEO accepts it; **Open the Executive Boardroom** shows the meeting and approval surface.
 
 If a model is not connected, the task form tells you to connect one. It does not create a task or report a fake success. The first task is real: it appears in Workforce with its Task/Run history and still obeys CEO acceptance rules.
@@ -262,6 +262,37 @@ Supported paths:
 - Sign in with a Claude or ChatGPT subscription.
 - Connect an API key for OpenAI, Anthropic, Google, OpenRouter and other providers.
 - Connect an OpenAI-compatible server such as Ollama, LM Studio or a self-hosted model, with an explicit base URL, model id and optional API key. The connection form performs a real server probe/test before saving.
+
+### Local OpenAI-compatible model
+
+For an Ollama server running next to a **source checkout**, use the exact model id from
+`ollama list` and a URL the API and worker processes can reach, for example:
+
+```text
+Server URL: http://127.0.0.1:11434/v1
+Model id:   llama3.2
+```
+
+Local and private endpoints are refused by default. On both API and Worker set:
+
+```text
+MCP_ALLOW_PRIVATE_ENDPOINT=true
+```
+
+Then restart both services. Setting only one leaves either the connection probe or the task run
+failing. This flag allows private model endpoints for every user of the deployment, so enable it
+only when the endpoint is one you control.
+
+The boundary depends on where the processes run:
+
+- **Source checkout in WSL/Linux:** `127.0.0.1` means that WSL/Linux environment. If Ollama runs on
+  Windows instead, use a Windows-host address reachable from WSL rather than the WSL loopback.
+- **Published Docker images:** inside the API and worker containers, `127.0.0.1` is the container
+  itself. Use a host address reachable from the container, such as
+  `http://host.docker.internal:11434/v1` on Docker Desktop/WSL2, or a bridge-reachable host address
+  on Linux.
+
+See [self-hosted models](./docs/self-host-models.md) for the full private-endpoint rules.
 
 Each Bot can use its own model and thinking level. See [docs/models.md](./docs/models.md). Deployment-wide model inheritance is optional; a new user can configure their own model without one.
 

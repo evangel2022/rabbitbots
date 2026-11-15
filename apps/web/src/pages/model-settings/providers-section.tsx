@@ -159,7 +159,9 @@ function AddProvider({
     setQuery,
     showSearch,
     visible: matching,
-  } = useListSearch(providers, { text: (provider) => provider.name });
+  } = useListSearch(providers, {
+    text: (provider) => `${provider.name} ${provider.id} ${provider.baseUrl ?? ""}`,
+  });
   return (
     <Popover
       open={open}

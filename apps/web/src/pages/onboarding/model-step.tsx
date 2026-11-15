@@ -13,6 +13,7 @@ import {
   SelectValue,
 } from "@rakazo/ui-web";
 import { Check, Copy } from "lucide-react";
+import { useState } from "react";
 import { FoundModelPicker } from "../../components/FoundModelPicker";
 import {
   ModelPreflightFeedback,
@@ -20,6 +21,7 @@ import {
 } from "../../components/ModelConnectionPreflightNotice";
 import { ModelHeadersEditor } from "../../components/ModelHeadersEditor";
 import { CompatibleKeyField } from "../model-settings/compatible-key-field";
+import { filterProviderChoices } from "./provider-search";
 import type { OnboardingModel } from "./use-onboarding-model";
 
 const CUSTOM_MODEL_OPTION = "__rakazo_custom_model__";
@@ -51,7 +53,6 @@ export function ModelStep({ model, fieldId }: { model: OnboardingModel; fieldId:
     preflightTarget,
     preflightTesting,
     provider,
-    providerItems,
     providerOptions,
     providerValue,
     saveModel,
@@ -64,6 +65,10 @@ export function ModelStep({ model, fieldId }: { model: OnboardingModel; fieldId:
     testApiKeyConnection,
     updateApiKey,
   } = model;
+  const [providerQuery, setProviderQuery] = useState("");
+  const visibleMain = filterProviderChoices(providerOptions.main, providerQuery);
+  const visibleRest = filterProviderChoices(providerOptions.rest, providerQuery);
+  const visibleProviderItems = [...visibleMain, ...visibleRest];
 
   return (
     <div>
@@ -74,37 +79,55 @@ export function ModelStep({ model, fieldId }: { model: OnboardingModel; fieldId:
         <span>
           <Trans>Provider</Trans>
         </span>
-        <Select
-          value={providerValue}
-          onValueChange={(value) => {
-            if (typeof value !== "string" || !value) return;
-            chooseProvider(value);
-          }}
-          items={providerItems}
-        >
-          <SelectTrigger aria-label={t`Provider`} className="mt-2 w-full">
-            <SelectValue placeholder={t`Choose a provider`} />
-          </SelectTrigger>
-          <SelectContent>
-            <SelectGroup>
-              {providerOptions.main.map((option) => (
-                <SelectItem key={option.value} value={option.value}>
-                  {option.label}
-                </SelectItem>
-              ))}
-            </SelectGroup>
-            {providerOptions.main.length && providerOptions.rest.length ? (
-              <SelectSeparator />
-            ) : null}
-            <SelectGroup>
-              {providerOptions.rest.map((option) => (
-                <SelectItem key={option.value} value={option.value}>
-                  {option.label}
-                </SelectItem>
-              ))}
-            </SelectGroup>
-          </SelectContent>
-        </Select>
+        <Input
+          aria-label={t`Search providers`}
+          placeholder={t`Search providers (Ollama, OpenAI, DeepSeek…)`}
+          value={providerQuery}
+          onChange={(event) => setProviderQuery(event.target.value)}
+          autoComplete="off"
+          spellCheck={false}
+          className="mt-2"
+        />
+        {visibleProviderItems.length === 0 ? (
+          <p className="mt-3 text-body-sm text-muted-foreground" role="status">
+            <Trans>No matching providers. Clear the search to see all providers.</Trans>
+          </p>
+        ) : (
+          <Select
+            value={providerValue}
+            onValueChange={(value) => {
+              if (typeof value !== "string" || !value) return;
+              chooseProvider(value);
+            }}
+            items={visibleProviderItems}
+          >
+            <SelectTrigger aria-label={t`Provider`} className="mt-2 w-full">
+              <SelectValue placeholder={t`Choose a provider`} />
+            </SelectTrigger>
+            <SelectContent>
+              <SelectGroup>
+                {visibleMain.map((option) => (
+                  <SelectItem key={option.value} value={option.value}>
+                    {option.label}
+                  </SelectItem>
+                ))}
+              </SelectGroup>
+              {visibleMain.length && visibleRest.length ? <SelectSeparator /> : null}
+              <SelectGroup>
+                {visibleRest.map((option) => (
+                  <SelectItem key={option.value} value={option.value}>
+                    {option.label}
+                  </SelectItem>
+                ))}
+              </SelectGroup>
+            </SelectContent>
+          </Select>
+        )}
+        {!providerQuery.trim() && !provider ? (
+          <p className="mt-2 text-body-sm text-muted-foreground">
+            <Trans>For Ollama or LM Studio, choose OpenAI-compatible.</Trans>
+          </p>
+        ) : null}
       </div>
       {provider ? (
         <>

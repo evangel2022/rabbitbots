@@ -37,9 +37,11 @@ const ENDPOINT_PRESET_OPTION = "endpoint-preset:";
 type ProviderAuth = "sign-in" | "key";
 
 const MAIN_PROVIDER_OPTIONS: ReadonlyArray<{ provider: string; auth?: ProviderAuth }> = [
+  { provider: OPENAI_COMPATIBLE_PROVIDER_ID },
+  { provider: "openai" },
+  { provider: "deepseek" },
   { provider: "openai-codex" },
   { provider: "anthropic", auth: "sign-in" },
-  { provider: "openai" },
   { provider: "anthropic", auth: "key" },
   { provider: "openrouter" },
   { provider: "google" },
@@ -155,12 +157,24 @@ export function useOnboardingModel({
       if (id === "openai") return t`OpenAI API`;
       return providerDisplayName(id, byId.get(id)?.providerName ?? id, auth);
     };
-    const main = [
-      ...(billingEnabled ? [{ value: CREDITS_OPTION, label: t`RabbitBots credits` }] : []),
-      ...MAIN_PROVIDER_OPTIONS.filter((option) => byId.has(option.provider)).map((option) => ({
+    const mainChoices = MAIN_PROVIDER_OPTIONS.filter((option) => byId.has(option.provider)).map(
+      (option) => ({
         value: providerOptionValue(option.provider, option.auth),
         label: optionLabel(option.provider, option.auth),
-      })),
+      }),
+    );
+    const ollamaChoices = endpointPresets
+      .filter((preset) => /ollama/i.test(preset.name))
+      .map((preset) => ({
+        value: `${ENDPOINT_PRESET_OPTION}${preset.baseUrl}`,
+        label: preset.name,
+      }));
+    const [firstChoice, ...remainingMainChoices] = mainChoices;
+    const main = [
+      ...(billingEnabled ? [{ value: CREDITS_OPTION, label: t`RabbitBots credits` }] : []),
+      ...(firstChoice ? [firstChoice] : []),
+      ...ollamaChoices,
+      ...remainingMainChoices,
     ];
     const rest = popularModelProvidersFirst(
       providers
@@ -171,17 +185,21 @@ export function useOnboardingModel({
           const item = { value: entry.provider, label: entry.providerName ?? entry.provider };
           return [
             item,
-            ...(entry.endpointPresets ?? []).map((preset) => ({
-              value: `${ENDPOINT_PRESET_OPTION}${preset.baseUrl}`,
-              label: preset.name,
-            })),
+            ...(entry.endpointPresets ?? [])
+              .filter(
+                (preset) => !ollamaChoices.some((choice) => choice.value.endsWith(preset.baseUrl)),
+              )
+              .map((preset) => ({
+                value: `${ENDPOINT_PRESET_OPTION}${preset.baseUrl}`,
+                label: preset.name,
+              })),
           ];
         }),
       (option) => option.value,
       (option) => option.label,
     );
     return { main, rest };
-  }, [billingEnabled, providers, t]);
+  }, [billingEnabled, endpointPresets, providers, t]);
   // Base UI Select.Value only resolves labels when Root gets `items`.
   const providerItems = useMemo(
     () => [...providerOptions.main, ...providerOptions.rest],

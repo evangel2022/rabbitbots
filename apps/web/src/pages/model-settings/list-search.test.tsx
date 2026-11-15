@@ -79,6 +79,27 @@ it("uses the shared matcher in Add provider and keeps an active search after the
   expect(input()).toBeNull();
 });
 
+it("searches Add provider by name and provider type, then restores the full list when cleared", async () => {
+  const render = () =>
+    root.render(
+      <ProvidersSection
+        credentials={[]}
+        providers={providers}
+        name={() => ""}
+        onAdd={() => {}}
+        onOpen={() => {}}
+      />,
+    );
+  await act(async () => render());
+  await click("Add provider");
+  await type(" provider-3 ");
+  expect(options()).toEqual(["Provider 3"]);
+  await type("missing-provider");
+  expect(options()).toEqual([]);
+  await type("");
+  expect(options()).toHaveLength(providers.length);
+});
+
 it("searches role models and providers together, including provider names and model ids", async () => {
   const onPick = vi.fn();
   await act(async () =>

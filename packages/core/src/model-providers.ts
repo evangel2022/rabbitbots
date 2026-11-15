@@ -83,9 +83,11 @@ export function clampCatalogThinkingLevel(
 }
 
 export const POPULAR_MODEL_PROVIDER_IDS = [
+  "openai-compatible",
+  "openai",
+  "deepseek",
   "openai-codex",
   "anthropic",
-  "openai",
   "openrouter",
   "google",
 ] as const;
@@ -103,10 +105,16 @@ export function popularModelProvidersFirst<T>(
     const index = POPULAR_MODEL_PROVIDER_IDS_LIST.indexOf(providerId(item));
     return index === -1 ? DEFAULT_PROVIDER_COUNT : index;
   };
-  return [...items].sort(
-    (a, b) =>
-      rank(a) - rank(b) || name(a).localeCompare(name(b), undefined, { sensitivity: "base" }),
-  );
+  return [...items].sort((a, b) => {
+    const byRank = rank(a) - rank(b);
+    if (byRank !== 0) return byRank;
+    // OpenAI-compatible is the local-first default; the hosted Ollama preset shares its
+    // provider id, so keep the generic local entry ahead of the named preset.
+    const aOllama = /^ollama\b/i.test(name(a));
+    const bOllama = /^ollama\b/i.test(name(b));
+    if (aOllama !== bOllama) return aOllama ? 1 : -1;
+    return name(a).localeCompare(name(b), undefined, { sensitivity: "base" });
+  });
 }
 
 /**

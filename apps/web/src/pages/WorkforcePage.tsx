@@ -22,6 +22,9 @@ import { Bot, BriefcaseBusiness, RefreshCw } from "lucide-react";
 import { useEffect, useState } from "react";
 import { Link } from "react-router-dom";
 import { CreateAiCompany } from "../components/CreateAiCompany";
+import { DeliveryQualityNotice } from "../components/DeliveryQualityNotice";
+import type { DeliveryQuality } from "../lib/delivery-quality";
+import { assessDeliveryQuality, assessEvidence, evidenceTrustLabel } from "../lib/delivery-quality";
 import { getActiveUiLocale } from "../lib/i18n";
 import { rpc } from "../lib/rpc";
 import { errorText } from "../lib/user-error";
@@ -75,6 +78,10 @@ export function WorkforcePage() {
   const [error, setError] = useState<string | null>(null);
   const [companyBusy, setCompanyBusy] = useState(false);
   const [companyError, setCompanyError] = useState<string | null>(null);
+  const [acceptWarning, setAcceptWarning] = useState<{
+    task: WorkforceTaskView;
+    quality: DeliveryQuality;
+  } | null>(null);
   const [companyStatus, setCompanyStatus] = useState<WorkforceCompanyStatus | undefined>(undefined);
 
   const companyQuery = useQuery({
@@ -138,6 +145,21 @@ export function WorkforcePage() {
     tasks.find((task) => task.id === selectedTaskId) ??
     botTasks[0];
   const executionTaskId = selectedTask?.linkedWorkforceTaskId ?? selectedTask?.id ?? null;
+  const awaitingAcceptance =
+    selectedTask !== undefined &&
+    selectedTask.acceptanceStatus === null &&
+    (selectedTask.latestResultStatus === "SUCCESS" ||
+      selectedTask.latestResultStatus === "PARTIAL");
+  const showTaskControls = selectedTask
+    ? selectedTask.executionStatus !== "COMPLETED" || awaitingAcceptance
+    : false;
+  const selectedQuality = selectedTask
+    ? assessDeliveryQuality({
+        criteria: selectedTask.acceptanceCriteria,
+        resultSummary: selectedTask.attempts.at(-1)?.resultSummary,
+        evidence: selectedTask.attempts.at(-1)?.evidence ?? [],
+      })
+    : null;
   const childTasks = selectedTask
     ? tasks.filter(
         (task) =>
@@ -219,6 +241,17 @@ export function WorkforcePage() {
     } finally {
       setBusy(false);
     }
+  }
+
+  function requestAccept(task: WorkforceTaskView) {
+    setAcceptWarning({
+      task,
+      quality: assessDeliveryQuality({
+        criteria: task.acceptanceCriteria,
+        resultSummary: task.attempts.at(-1)?.resultSummary,
+        evidence: task.attempts.at(-1)?.evidence ?? [],
+      }),
+    });
   }
 
   async function createTask() {
@@ -488,10 +521,16 @@ export function WorkforcePage() {
                         : ""}
                     </p>
                   ) : null}
-                  <p className="mt-1 text-body-sm text-muted-foreground">
-                    {selectedTask.acceptanceCriteria || "No acceptance criterion recorded."}
-                  </p>
+                  <div className="mt-2">
+                    <p className="text-label font-medium text-muted-foreground">
+                      Acceptance criteria
+                    </p>
+                    <p className="mt-0.5 text-body-sm">
+                      {selectedTask.acceptanceCriteria || "No acceptance criterion recorded."}
+                    </p>
+                  </div>
                 </div>
+                {selectedQuality ? <DeliveryQualityNotice quality={selectedQuality} /> : null}
                 <section className="rounded-lg border bg-background p-3">
                   <div className="flex items-center justify-between">
                     <span className="text-label font-medium">Execution</span>
@@ -529,15 +568,13 @@ export function WorkforcePage() {
                         {selectedTask.executionStatus === "OPEN" ? "Run" : "Retry"}
                       </Button>
                     ) : null}
-                    {selectedTask.executionStatus === "IN_PROGRESS" &&
-                    (selectedTask.latestResultStatus === "SUCCESS" ||
-                      selectedTask.latestResultStatus === "PARTIAL") ? (
+                    {awaitingAcceptance ? (
                       <>
                         <Button
                           size="sm"
                           disabled={busy}
                           data-testid="workforce-accept"
-                          onClick={() => void accept(selectedTask, "ACCEPT")}
+                          onClick={() => requestAccept(selectedTask)}
                         >
                           Accept
                         </Button>
@@ -575,12 +612,7 @@ export function WorkforcePage() {
                         </Button>
                       </>
                     ) : null}
-                    {selectedTask.executionStatus !== "COMPLETED" &&
-                    !(
-                      selectedTask.executionStatus === "IN_PROGRESS" &&
-                      (selectedTask.latestResultStatus === "SUCCESS" ||
-                        selectedTask.latestResultStatus === "PARTIAL")
-                    ) ? (
+                    {showTaskControls && !awaitingAcceptance ? (
                       <Button
                         size="sm"
                         variant="secondary"
@@ -591,7 +623,7 @@ export function WorkforcePage() {
                       </Button>
                     ) : null}
                   </div>
-                  {selectedTask.executionStatus !== "COMPLETED" ? (
+                  {showTaskControls ? (
                     <>
                       <Input
                         className="mt-2"
@@ -599,54 +631,56 @@ export function WorkforcePage() {
                         value={comment}
                         onChange={(event) => setComment(event.target.value)}
                       />
-                      <div className="mt-2 flex items-center gap-1.5">
-                        <NativeSelect
-                          aria-label={t`Reassign task`}
-                          value={assignBotId}
-                          onChange={(event) => setAssignBotId(event.target.value)}
-                        >
-                          <NativeSelectOption value="">Reassign to…</NativeSelectOption>
-                          {bots.map((bot) => (
-                            <NativeSelectOption key={bot.id} value={bot.id}>
-                              {bot.name}
-                            </NativeSelectOption>
-                          ))}
-                        </NativeSelect>
-                        <Button
-                          size="sm"
-                          variant="secondary"
-                          disabled={busy || !assignBotId}
-                          onClick={() => {
-                            if (!selectedTask || !assignBotId) return;
-                            setBusy(true);
-                            setError(null);
-                            void (
-                              selectedTask.source === "MEETING_DECISION"
-                                ? rpc.meetings.actions.assign({
-                                    meetingId: selectedTask.meetingId!,
-                                    actionItemId: selectedTask.id,
-                                    assigneeBotId: assignBotId,
-                                    clientNonce: crypto.randomUUID(),
-                                  })
-                                : rpc.workforce.tasks.assign({
-                                    taskId: selectedTask.id,
-                                    assigneeBotId: assignBotId,
-                                    clientNonce: crypto.randomUUID(),
-                                  })
-                            )
-                              .then(() => {
-                                setAssignBotId("");
-                                return refresh();
-                              })
-                              .catch((cause: unknown) => {
-                                setError(errorText(cause, t`Could not reassign this task`));
-                              })
-                              .finally(() => setBusy(false));
-                          }}
-                        >
-                          Assign
-                        </Button>
-                      </div>
+                      {selectedTask.executionStatus !== "COMPLETED" ? (
+                        <div className="mt-2 flex items-center gap-1.5">
+                          <NativeSelect
+                            aria-label={t`Reassign task`}
+                            value={assignBotId}
+                            onChange={(event) => setAssignBotId(event.target.value)}
+                          >
+                            <NativeSelectOption value="">Reassign to…</NativeSelectOption>
+                            {bots.map((bot) => (
+                              <NativeSelectOption key={bot.id} value={bot.id}>
+                                {bot.name}
+                              </NativeSelectOption>
+                            ))}
+                          </NativeSelect>
+                          <Button
+                            size="sm"
+                            variant="secondary"
+                            disabled={busy || !assignBotId}
+                            onClick={() => {
+                              if (!selectedTask || !assignBotId) return;
+                              setBusy(true);
+                              setError(null);
+                              void (
+                                selectedTask.source === "MEETING_DECISION"
+                                  ? rpc.meetings.actions.assign({
+                                      meetingId: selectedTask.meetingId!,
+                                      actionItemId: selectedTask.id,
+                                      assigneeBotId: assignBotId,
+                                      clientNonce: crypto.randomUUID(),
+                                    })
+                                  : rpc.workforce.tasks.assign({
+                                      taskId: selectedTask.id,
+                                      assigneeBotId: assignBotId,
+                                      clientNonce: crypto.randomUUID(),
+                                    })
+                              )
+                                .then(() => {
+                                  setAssignBotId("");
+                                  return refresh();
+                                })
+                                .catch((cause: unknown) => {
+                                  setError(errorText(cause, t`Could not reassign this task`));
+                                })
+                                .finally(() => setBusy(false));
+                            }}
+                          >
+                            Assign
+                          </Button>
+                        </div>
+                      ) : null}
                     </>
                   ) : null}
                 </section>
@@ -686,14 +720,26 @@ export function WorkforcePage() {
                             {formatTime(attempt.startedAt)} – {formatTime(attempt.completedAt)}
                           </div>
                           {attempt.resultSummary ? (
-                            <details className="mt-1">
-                              <summary className="cursor-pointer text-label text-muted-foreground">
-                                Result details
-                              </summary>
-                              <p className="mt-1 whitespace-pre-wrap text-body-sm text-muted-foreground">
+                            <>
+                              <p
+                                className={cn(
+                                  "mt-1 whitespace-pre-wrap text-body-sm text-muted-foreground",
+                                  attempt.resultSummary.length > 280 && "line-clamp-3",
+                                )}
+                              >
                                 {attempt.resultSummary}
                               </p>
-                            </details>
+                              {attempt.resultSummary.length > 280 ? (
+                                <details className="mt-1">
+                                  <summary className="cursor-pointer text-label text-muted-foreground">
+                                    Full result
+                                  </summary>
+                                  <p className="mt-1 whitespace-pre-wrap text-body-sm text-muted-foreground">
+                                    {attempt.resultSummary}
+                                  </p>
+                                </details>
+                              ) : null}
+                            </>
                           ) : null}
                           {attempt.evidence.length ? (
                             <details className="mt-1">
@@ -701,11 +747,23 @@ export function WorkforcePage() {
                                 Evidence ({attempt.evidence.length})
                               </summary>
                               <div className="mt-1 space-y-0.5 text-label text-muted-foreground">
-                                {attempt.evidence.map((item) => (
-                                  <p key={item} className="break-words">
-                                    {item}
-                                  </p>
-                                ))}
+                                {attempt.evidence.map((item) => {
+                                  const assessment = assessEvidence(item);
+                                  return (
+                                    <p key={item} className="break-words">
+                                      <span
+                                        className={
+                                          assessment.trust === "INVALID"
+                                            ? "text-destructive"
+                                            : "text-status-working"
+                                        }
+                                      >
+                                        {evidenceTrustLabel(assessment.trust)}
+                                      </span>{" "}
+                                      {item}
+                                    </p>
+                                  );
+                                })}
                               </div>
                             </details>
                           ) : (
@@ -932,6 +990,48 @@ export function WorkforcePage() {
               </Button>
             </DialogFooter>
           </div>
+        </DialogContent>
+      </Dialog>
+      <Dialog
+        open={acceptWarning !== null}
+        onOpenChange={(next) => !next && setAcceptWarning(null)}
+      >
+        <DialogContent data-testid="workforce-accept-warning">
+          <DialogHeader>
+            <DialogTitle>Accept with open quality gaps?</DialogTitle>
+          </DialogHeader>
+          <p className="text-body-sm text-muted-foreground">
+            Execution succeeded, but the acceptance criteria and evidence are not system-verified.
+            You keep the final decision.
+          </p>
+          {acceptWarning ? (
+            <>
+              <p className="mt-2 text-label font-medium">Acceptance criteria</p>
+              <p className="mt-0.5 text-body-sm">
+                {acceptWarning.task.acceptanceCriteria || "No acceptance criterion recorded."}
+              </p>
+              <ul className="mt-2 list-disc space-y-0.5 ps-5 text-label text-status-working">
+                {acceptWarning.quality.warnings.map((warning) => (
+                  <li key={warning}>{warning}</li>
+                ))}
+              </ul>
+            </>
+          ) : null}
+          <DialogFooter>
+            <Button variant="secondary" onClick={() => setAcceptWarning(null)}>
+              Not yet
+            </Button>
+            <Button
+              data-testid="workforce-accept-anyway"
+              onClick={() => {
+                const warning = acceptWarning;
+                setAcceptWarning(null);
+                if (warning) void accept(warning.task, "ACCEPT");
+              }}
+            >
+              Accept anyway
+            </Button>
+          </DialogFooter>
         </DialogContent>
       </Dialog>
     </div>

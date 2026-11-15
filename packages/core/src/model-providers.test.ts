@@ -45,13 +45,13 @@ describe("popularModelProvidersFirst", () => {
         (provider) => provider.name,
       ).map((provider) => provider.name),
     ).toEqual([
+      "OpenAI-compatible",
+      "Ollama Cloud",
       "ChatGPT",
       "OpenRouter",
       "Google",
       "Azure OpenAI",
       "Groq",
-      "Ollama Cloud",
-      "OpenAI-compatible",
     ]);
   });
 });

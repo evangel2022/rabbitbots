@@ -120,11 +120,15 @@ Public hosts and ordinary hostnames need HTTPS when they receive an API key or c
 and must resolve only to public addresses. Set `RAKAZO_OPENAI_COMPAT_ALLOW_PUBLIC=0` on the API
 and worker to block them.
 Literal private IP, loopback, and `host.docker.internal` targets do not, but they are refused
-unless `MCP_ALLOW_PRIVATE_ENDPOINT=true` is set on the API and worker, which allows them for every
-user. This is checked on save, on model discovery, and on every run.
-With the Docker images install and the desktop app, a `localhost` or `127.0.0.1` connection
-reaches the computer running Docker (through `host.docker.internal`). On Linux, the model server
-must listen on an address the Docker bridge can reach, not only `127.0.0.1`.
+unless `MCP_ALLOW_PRIVATE_ENDPOINT=true` is set on both the API and worker, which allows them for
+every user. This is checked on save, on model discovery, and on every run. Set it on both services
+and restart both: changing only one leaves the probe or the task run refused.
+With the Docker images install and the desktop app, a container's `127.0.0.1` is the container
+itself, not the Docker host. Use `http://host.docker.internal:11434/v1` for an Ollama server on
+Docker Desktop/WSL2, or a bridge-reachable host address on Linux where the model server listens on
+an address Docker can reach. From a source checkout, `127.0.0.1` is the WSL/Linux or host
+environment running the API and worker; if Ollama runs on Windows, use a Windows-host address
+reachable from WSL.
 For a self-hosted endpoint whose hostname resolves to private IPs, set
 `RAKAZO_OPENAI_COMPAT_PRIVATE_HOSTS=models.example.test,other.example.test` in the deployment
 environment for both API and worker, then recreate those containers. Entries are exact hostnames
