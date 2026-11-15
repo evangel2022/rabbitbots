@@ -145,6 +145,10 @@ msgstr "{0}、オンにするまで一時停止中"
 msgid "{amount} / {period}"
 msgstr "{amount} / {period}"
 
+#: src/pages/OnboardingCompany.tsx
+msgid "{backLabel}"
+msgstr ""
+
 #: src/pages/shell/dialogs.tsx
 msgid "{botCount, plural, one {Delete {name} and its # bot?} other {Delete {name} and its # bots?}}"
 msgstr "{botCount, plural, other {{name} と # 個のボットを削除しますか？}}"
@@ -267,6 +271,10 @@ msgstr "{names}は独自のモデルを使い続けます"
 #: src/pages/model-settings/space-bots-model.tsx
 msgid "{names} keeps its own model"
 msgstr "{names}は独自のモデルを使い続けます"
+
+#: src/pages/OnboardingCompany.tsx
+msgid "{primaryLabel}"
+msgstr ""
 
 #. js-lingui-explicit-id
 #: src/lib/run-error.ts
@@ -427,6 +435,10 @@ msgstr "{summary}{date}にリセットされます。"
 msgid "{summary} Your backup models also failed."
 msgstr "{summary} 予備のモデルでもエラーが発生しました。"
 
+#: src/pages/OnboardingCompany.tsx
+msgid "{title}"
+msgstr ""
+
 #: src/pages/ActivityList.tsx
 msgid "{title}, {label}"
 msgstr "{title}、{label}"
@@ -567,9 +579,25 @@ msgstr "いろいろ少しずつ"
 msgid "A command's output"
 msgstr "コマンドの出力"
 
+#: src/pages/MeetingsPage.tsx
+msgid "A comment is required for this acceptance action."
+msgstr ""
+
 #: src/components/ApprovalRulesSettings.tsx
 msgid "A model approves routine actions and asks you about the rest."
 msgstr "モデルが日常的な操作を承認し、それ以外はあなたに確認します。"
+
+#: src/pages/OnboardingCompany.tsx
+msgid "A model is connected. Your AI employees can start work."
+msgstr ""
+
+#: src/pages/MeetingsPage.tsx
+msgid "A rationale is required for rejection or deferral."
+msgstr ""
+
+#: src/pages/shell/investor-demo.tsx
+msgid "A run is already active in this chat. Wait for it to finish."
+msgstr ""
 
 #. placeholder {0}: oauth.verificationUri.replace(/^https:\/\//, "")
 #: src/pages/model-settings/connection-controls.tsx
@@ -592,6 +620,18 @@ msgstr "約{kb} KBのメモリがボットに届かなくなっています。"
 #: src/components/InfoTooltip.tsx
 msgid "About {label}"
 msgstr "{label}について"
+
+#: src/pages/MeetingsPage.tsx
+msgid "Accept"
+msgstr ""
+
+#: src/pages/WorkforcePage.tsx
+msgid "Acceptance comment (required for evidence/block)"
+msgstr ""
+
+#: src/pages/WorkforcePage.tsx
+msgid "Acceptance criteria"
+msgstr ""
 
 #: src/components/ComputerProviderSettings.tsx
 msgid "Access key ID"
@@ -627,6 +667,14 @@ msgstr "アカウントラベル"
 msgid "Account menu for {name}"
 msgstr "{name}のアカウントメニュー"
 
+#: src/pages/MeetingsPage.tsx
+msgid "Action items"
+msgstr ""
+
+#: src/pages/MeetingsPage.tsx
+msgid "Action items:"
+msgstr ""
+
 #. placeholder {0}: bot.name
 #. placeholder {0}: group.spaceName
 #. placeholder {0}: page.title
@@ -651,6 +699,7 @@ msgstr "スペースの操作"
 msgid "Active"
 msgstr "有効"
 
+#: src/pages/shell/shell-sidebar.tsx
 #: src/pages/shell/sidebar-header.tsx
 msgid "Activity"
 msgstr "アクティビティ"
@@ -826,9 +875,30 @@ msgstr "詳細設定"
 msgid "Advanced..."
 msgstr "詳細設定..."
 
+#: src/pages/MeetingsPage.tsx
+msgid "Agenda"
+msgstr ""
+
+#: src/pages/MeetingsPage.tsx
+msgid "Agenda decision"
+msgstr ""
+
+#: src/pages/MeetingsPage.tsx
+msgid "Agenda time limit (seconds)"
+msgstr ""
+
 #: src/components/AccountDataSettings.tsx
 msgid "Agent from another app"
 msgstr "他のアプリのエージェント"
+
+#: src/components/CreateAiCompany.tsx
+msgid "AI Company is ready"
+msgstr ""
+
+#: src/pages/shell/sidebar-header.tsx
+#: src/pages/WorkforcePage.tsx
+msgid "AI Workforce"
+msgstr ""
 
 #: src/components/VaultSettings.tsx
 #: src/pages/PluginsOverlay.tsx
@@ -1042,6 +1112,10 @@ msgstr "適用"
 msgid "Approval boundaries"
 msgstr "承認の範囲"
 
+#: src/pages/MeetingsPage.tsx
+msgid "Approval history"
+msgstr ""
+
 #: src/pages/ModelSettingsOverlay.tsx
 msgid "Approval model"
 msgstr "承認モデル"
@@ -1051,6 +1125,8 @@ msgstr "承認モデル"
 msgid "Approvals"
 msgstr "承認"
 
+#: src/components/AskCard.tsx
+#: src/pages/MeetingsPage.tsx
 #: src/pages/MessagingSettingsPanel.tsx
 #: src/pages/PluginSubmissionsPanel.tsx
 #: src/pages/shell/message-cards.tsx
@@ -1065,6 +1141,11 @@ msgstr "画面で承認または拒否してください。"
 msgid "Approve this server to let your agent use its tools."
 msgstr "このサーバーを承認すると、エージェントがそのツールを使用できるようになります。"
 
+#: src/pages/MeetingsPage.tsx
+msgid "Approve with conditions"
+msgstr ""
+
+#: src/components/AskCard.tsx
 #: src/pages/PluginSubmissionsPanel.tsx
 msgid "Approved"
 msgstr "承認済み"
@@ -1111,8 +1192,13 @@ msgid "Asks only before purchases and the first use of your computer. Only Block
 msgstr "購入時とコンピューターの初回使用時のみ確認します。ブロックルールのみ適用されます。"
 
 #: src/pages/shell/computer-panel.tsx
+#: src/pages/shell/computer-workspace.tsx
 msgid "Asleep"
 msgstr "スリープ中"
+
+#: src/pages/WorkforcePage.tsx
+msgid "Assignee bot"
+msgstr ""
 
 #. placeholder {0}: preset.time
 #: src/lib/cron.ts
@@ -1203,12 +1289,15 @@ msgstr "Avatar Studio"
 #: src/pages/Auth.tsx
 #: src/pages/Board.tsx
 #: src/pages/McpServerForm.tsx
+#: src/pages/MeetingsPage.tsx
 #: src/pages/NavLinkPage.tsx
+#: src/pages/OnboardingCompany.tsx
 #: src/pages/plugins/connector-detail.tsx
 #: src/pages/plugins/parts.tsx
 #: src/pages/RoutineEditor.tsx
 #: src/pages/SettingsOverlay.tsx
 #: src/pages/shell/agent-import.tsx
+#: src/pages/WorkforcePage.tsx
 msgid "Back"
 msgstr "戻る"
 
@@ -1219,6 +1308,10 @@ msgstr "戻る・進む"
 #: src/components/pages/PageNotice.tsx
 msgid "Back to chat"
 msgstr "チャットに戻る"
+
+#: src/pages/shell/shell-sidebar.tsx
+msgid "Back to chats"
+msgstr ""
 
 #: src/pages/Auth.tsx
 msgid "Back to sign in"
@@ -1257,6 +1350,7 @@ msgid "Billing period"
 msgstr "請求期間"
 
 #: src/components/ApprovalRulesSettings.tsx
+#: src/pages/MeetingsPage.tsx
 msgid "Block"
 msgstr "ブロック"
 
@@ -1327,6 +1421,10 @@ msgstr "ボットのモデル"
 msgid "Both"
 msgstr "両方"
 
+#: src/pages/WorkforcePage.tsx
+msgid "Bots"
+msgstr ""
+
 #: src/components/ModelCredits.tsx
 msgid "Bots and browser automation"
 msgstr "ボットとブラウザ自動化"
@@ -1347,6 +1445,10 @@ msgstr "独自のモデルを使うボット"
 msgid "Brain label"
 msgstr "Brainラベル"
 
+#: src/pages/OnboardingCompany.tsx
+msgid "Bring your own model or skip for now. You need a model before a task can run."
+msgstr ""
+
 #: src/components/integrations/skills-dialog.tsx
 msgid "Browse"
 msgstr "参照"
@@ -1356,6 +1458,18 @@ msgstr "参照"
 msgid "Browse MCP servers"
 msgstr "MCPサーバーを探す"
 
+#: src/pages/OnboardingCompany.tsx
+msgid "Build your AI company"
+msgstr ""
+
+#: src/pages/OnboardingCompany.tsx
+msgid "Build your AI team"
+msgstr ""
+
+#: src/pages/OnboardingCompany.tsx
+msgid "Build Your Own AI Company."
+msgstr ""
+
 #: src/pages/KnowledgeSection.tsx
 #: src/pages/shell/agent-import-plan.tsx
 msgid "Built-in"
@@ -1364,6 +1478,11 @@ msgstr "組み込み"
 #: src/components/AskCard.tsx
 msgid "Button “{button}” · read from the page, not checked"
 msgstr "ボタン「{button}」· ページから読み取り、未確認"
+
+#: src/components/NetworkProxySettings.tsx
+#: src/components/UserNetworkProxySettings.tsx
+msgid "Bypass hosts"
+msgstr ""
 
 #: src/pages/shell/chat-header.tsx
 msgid "Call"
@@ -1409,6 +1528,7 @@ msgstr "画像を読み取れません"
 
 #: src/components/AskCard.tsx
 #: src/components/ConfirmDialog.tsx
+#: src/components/CreateAiCompany.tsx
 #: src/components/integrations/plugin-marketplace.tsx
 #: src/components/markdown-link-prompt.tsx
 #: src/components/ModelCredits.tsx
@@ -1418,12 +1538,15 @@ msgstr "画像を読み取れません"
 #: src/components/vault/VaultItemDetail.tsx
 #: src/pages/AccountSettingsOverlay.tsx
 #: src/pages/KnowledgeSection.tsx
+#: src/pages/MeetingsPage.tsx
 #: src/pages/model-settings/connection-controls.tsx
 #: src/pages/onboarding/model-step.tsx
 #: src/pages/PaymentWalletSettingsPanel.tsx
 #: src/pages/PluginSubmissionsPanel.tsx
 #: src/pages/shell/create-bot-dialog.tsx
 #: src/pages/shell/dialogs.tsx
+#: src/pages/shell/investor-demo.tsx
+#: src/pages/WorkforcePage.tsx
 msgid "Cancel"
 msgstr "キャンセル"
 
@@ -1453,6 +1576,7 @@ msgstr "キャンセル済み"
 
 #: src/components/AskCard.tsx
 #: src/pages/ActivityList.tsx
+#: src/pages/MeetingsPage.tsx
 msgid "Cancelled"
 msgstr "キャンセル済み"
 
@@ -1476,6 +1600,30 @@ msgstr "カード表示"
 #: src/components/vault/kinds.tsx
 msgid "Cards"
 msgstr "カード"
+
+#: src/pages/MeetingsPage.tsx
+msgid "CEO accepted"
+msgstr ""
+
+#: src/pages/MeetingsPage.tsx
+msgid "CEO Assistant chairs, Research Bot and Finance Bot report real evidence, and the meeting records decisions and actions."
+msgstr ""
+
+#: src/pages/shell/investor-demo.tsx
+msgid "CEO Assistant splits the work across Research Bot and Finance Bot, waits for both, then writes the investment report. It is a live run, not a canned answer."
+msgstr ""
+
+#: src/pages/MeetingsPage.tsx
+msgid "Chair"
+msgstr ""
+
+#: src/pages/MeetingsPage.tsx
+msgid "Chair closing summary"
+msgstr ""
+
+#: src/pages/MeetingsPage.tsx
+msgid "Chair review"
+msgstr ""
 
 #: src/pages/ModelRoleSettings.tsx
 msgid "Change {name}"
@@ -1563,6 +1711,14 @@ msgstr "状況を確認してください。"
 #: src/lib/model-connection-preflight.ts
 msgid "Check the API key or sign-in, then test again."
 msgstr "APIキーまたはログイン情報を確認してから、もう一度テストしてください。"
+
+#: src/lib/model-connection-preflight.ts
+msgid "Check the hostname and DNS/VPN settings, then test again."
+msgstr ""
+
+#: src/lib/model-connection-preflight.ts
+msgid "Check the provider status and server logs, then test again."
+msgstr ""
 
 #: src/lib/model-connection-preflight.ts
 msgid "Check the server URL and network, then test again."
@@ -1810,6 +1966,14 @@ msgstr "コマンド変数"
 msgid "Comment"
 msgstr "コメント"
 
+#: src/pages/MeetingsPage.tsx
+msgid "Comment (optional)"
+msgstr ""
+
+#: src/pages/MeetingsPage.tsx
+msgid "Comment (required)"
+msgstr ""
+
 #: src/pages/plugins/use-catalog-browse.ts
 msgid "Communication"
 msgstr "コミュニケーション"
@@ -1817,6 +1981,18 @@ msgstr "コミュニケーション"
 #: src/pages/AccountSettingsOverlay.tsx
 msgid "Compact"
 msgstr "コンパクト"
+
+#: src/pages/OnboardingCompany.tsx
+msgid "Company Description"
+msgstr ""
+
+#: src/pages/OnboardingCompany.tsx
+msgid "Company Name"
+msgstr ""
+
+#: src/pages/OnboardingCompany.tsx
+msgid "Company ready"
+msgstr ""
 
 #: src/pages/ScratchpadSection.tsx
 msgid "Complete"
@@ -1880,9 +2056,29 @@ msgstr "コンピューターが利用可能になりました。再読み込み
 msgid "Computers are off on this server."
 msgstr "このサーバーではコンピューターは無効です。"
 
+#: src/pages/MeetingsPage.tsx
+msgid "Conditions (required)"
+msgstr ""
+
+#: src/pages/MeetingsPage.tsx
+msgid "Conditions are required for a conditional approval."
+msgstr ""
+
+#: src/pages/MeetingsPage.tsx
+msgid "Conditions:"
+msgstr ""
+
 #: src/pages/plugins/plugin-browse.tsx
 msgid "Configure a plugin catalog on the server to connect apps."
 msgstr "アプリを接続するには、サーバーでプラグインカタログを設定してください。"
+
+#: src/pages/MeetingsPage.tsx
+msgid "Confirm"
+msgstr ""
+
+#: src/pages/MeetingsPage.tsx
+msgid "Confirm conditions"
+msgstr ""
 
 #: src/pages/KnowledgeSection.tsx
 msgid "Confirm delete"
@@ -1900,6 +2096,10 @@ msgstr "パスワードの確認"
 #: src/components/integrations/plugin-marketplace.tsx
 msgid "Confirm removal"
 msgstr "削除の確認"
+
+#: src/lib/model-connection-preflight.ts
+msgid "Confirm the server is running and listening on the URL and port you entered."
+msgstr ""
 
 #: src/lib/model-connection-preflight.ts
 msgid "Confirm the URL is reachable from this browser session, then test again."
@@ -1927,9 +2127,14 @@ msgid "Connect a chat app"
 msgstr "チャットアプリを接続"
 
 #: src/pages/onboarding/model-step.tsx
+#: src/pages/OnboardingCompany.tsx
 #: src/pages/shell/composer-error.tsx
 msgid "Connect a model"
 msgstr "モデルを接続"
+
+#: src/pages/OnboardingCompany.tsx
+msgid "Connect a model first"
+msgstr ""
 
 #. js-lingui-explicit-id
 #: src/lib/run-error.ts
@@ -1966,6 +2171,10 @@ msgstr "OAuthを接続"
 msgid "Connect this model's provider first."
 msgstr "先にこのモデルのプロバイダーを接続してください。"
 
+#: src/pages/OnboardingCompany.tsx
+msgid "Connect your AI model"
+msgstr ""
+
 #. js-lingui-explicit-id
 #: src/lib/run-error.ts
 msgid "Connect your own API key in Models or choose RabbitBots credits in Billing."
@@ -1990,6 +2199,7 @@ msgstr "{0}を接続しました。"
 
 #: src/components/integrations/plugin-marketplace.tsx
 #: src/pages/McpServersOverlay.tsx
+#: src/pages/MeetingsPage.tsx
 #: src/pages/memory-providers/HonchoSettingsForm.tsx
 #: src/pages/memory-providers/SerenitySettingsForm.tsx
 #: src/pages/memory-providers/SupermemorySettingsForm.tsx
@@ -1998,6 +2208,7 @@ msgstr "{0}を接続しました。"
 msgid "Connecting…"
 msgstr "接続中…"
 
+#: src/components/NetworkProxySettings.tsx
 #: src/pages/memory-providers/ConnectionModeFields.tsx
 msgid "Connection"
 msgstr "接続"
@@ -2027,6 +2238,10 @@ msgstr "連絡先"
 #: src/pages/shell/import-status.ts
 msgid "Contains code to run"
 msgstr "実行するコードを含みます"
+
+#: src/pages/shell/message-outline.tsx
+msgid "Contents"
+msgstr ""
 
 #: src/pages/model-settings/compatible-model-fields.tsx
 #: src/pages/onboarding/model-step.tsx
@@ -2151,6 +2366,10 @@ msgstr "このアプリを承認できませんでした"
 msgid "Could not cancel invites"
 msgstr "招待をキャンセルできませんでした"
 
+#: src/pages/MeetingsPage.tsx
+msgid "Could not cancel the meeting"
+msgstr ""
+
 #: src/components/ComputerDeviceSettings.tsx
 msgid "Could not change"
 msgstr "変更できませんでした"
@@ -2190,6 +2409,10 @@ msgstr "OAuthを完了できませんでした"
 #: src/components/DesktopUpdates.tsx
 msgid "Could not complete the update. Try again."
 msgstr "アップデートを完了できませんでした。もう一度お試しください。"
+
+#: src/pages/MeetingsPage.tsx
+msgid "Could not confirm the conditions"
+msgstr ""
 
 #: src/components/integrations/IntegrationSetup.tsx
 #: src/pages/plugins/use-plugin-connections.ts
@@ -2253,13 +2476,21 @@ msgstr "スペースを作成できませんでした"
 msgid "Could not create the bot"
 msgstr "ボットを作成できませんでした"
 
+#: src/pages/MeetingsPage.tsx
+msgid "Could not create the meeting"
+msgstr ""
+
 #: src/pages/shell/use-routine-editor.ts
 msgid "Could not create the webhook key"
 msgstr "Webhookキーを作成できませんでした"
 
-#: src/pages/Onboarding.tsx
-msgid "Could not create your bot"
-msgstr "ボットを作成できませんでした"
+#: src/pages/WorkforcePage.tsx
+msgid "Could not create this task"
+msgstr ""
+
+#: src/pages/WorkforcePage.tsx
+msgid "Could not create your AI Company"
+msgstr ""
 
 #: src/pages/shell/dialogs.tsx
 msgid "Could not delete bot"
@@ -2333,6 +2564,14 @@ msgstr "{name}をダウンロードできませんでした。もう一度お試
 #: src/components/integrations/plugin-marketplace.tsx
 msgid "Could not enable tools"
 msgstr "ツールを有効にできませんでした"
+
+#: src/pages/MeetingsPage.tsx
+msgid "Could not execute this action"
+msgstr ""
+
+#: src/pages/WorkforcePage.tsx
+msgid "Could not execute this task"
+msgstr ""
 
 #: src/pages/AdminAccessPage.tsx
 msgid "Could not grant access"
@@ -2483,6 +2722,22 @@ msgstr "サーバーに接続できませんでした"
 msgid "Could not read these files"
 msgstr "これらのファイルを読み込めませんでした"
 
+#: src/pages/WorkforcePage.tsx
+msgid "Could not reassign this task"
+msgstr ""
+
+#: src/pages/MeetingsPage.tsx
+msgid "Could not record the acceptance"
+msgstr ""
+
+#: src/pages/MeetingsPage.tsx
+msgid "Could not record the approval"
+msgstr ""
+
+#: src/pages/WorkforcePage.tsx
+msgid "Could not record this decision"
+msgstr ""
+
 #: src/pages/PluginSubmissionsPanel.tsx
 msgid "Could not reject plugin"
 msgstr "プラグインを却下できませんでした"
@@ -2582,6 +2837,10 @@ msgstr "グループを保存できませんでした"
 msgid "Could not save model"
 msgstr "モデルを保存できませんでした"
 
+#: src/components/NetworkProxySettings.tsx
+msgid "Could not save network proxy"
+msgstr ""
+
 #: src/pages/shell/use-routine-editor.ts
 msgid "Could not save routine"
 msgstr "ルーティンを保存できませんでした"
@@ -2619,6 +2878,10 @@ msgstr "認証情報を保存できませんでした"
 msgid "Could not save this choice"
 msgstr "この選択を保存できませんでした"
 
+#: src/components/UserNetworkProxySettings.tsx
+msgid "Could not save your proxy"
+msgstr ""
+
 #: src/pages/plugins/domain-search.tsx
 msgid "Could not search catalog"
 msgstr "カタログを検索できませんでした"
@@ -2631,6 +2894,10 @@ msgstr "リセット用メールを送信できませんでした"
 #: src/lib/call-session.ts
 msgid "Could not send that"
 msgstr "送信できませんでした"
+
+#: src/pages/MeetingsPage.tsx
+msgid "Could not send this message"
+msgstr ""
 
 #: src/components/VaultSettings.tsx
 msgid "Could not show the credential"
@@ -2652,6 +2919,14 @@ msgstr "OAuthを開始できませんでした"
 msgid "Could not start teaching"
 msgstr "ティーチングを開始できませんでした"
 
+#: src/pages/shell/investor-demo.tsx
+msgid "Could not start the demo. Check the chat error and try again."
+msgstr ""
+
+#: src/pages/MeetingsPage.tsx
+msgid "Could not start the meeting"
+msgstr ""
+
 #: src/components/ComputerMaintenanceActions.tsx
 msgid "Could not stop computer"
 msgstr "コンピューターを停止できませんでした"
@@ -2672,6 +2947,14 @@ msgstr "操作を引き継げませんでした"
 #: src/pages/McpServersOverlay.tsx
 msgid "Could not test MCP server"
 msgstr "MCPサーバーをテストできませんでした"
+
+#: src/components/NetworkProxySettings.tsx
+msgid "Could not test network proxy"
+msgstr ""
+
+#: src/components/UserNetworkProxySettings.tsx
+msgid "Could not test your proxy"
+msgstr ""
 
 #: src/lib/dictation.ts
 msgid "Could not transcribe that recording."
@@ -2766,6 +3049,10 @@ msgstr "国"
 msgid "Create"
 msgstr "作成"
 
+#: src/components/CreateAiCompany.tsx
+msgid "Create a Custom AI Company"
+msgstr ""
+
 #. placeholder {0}: bot.name
 #: src/pages/shell/dialogs.tsx
 msgid "Create a section and move {0} into it."
@@ -2775,6 +3062,18 @@ msgstr "セクションを作成して{0}を移動します。"
 msgid "Create account"
 msgstr "アカウントを作成"
 
+#: src/components/CreateAiCompany.tsx
+msgid "Create AI Company"
+msgstr ""
+
+#: src/pages/MeetingsPage.tsx
+msgid "Create an AI Company"
+msgstr ""
+
+#: src/components/CreateAiCompany.tsx
+msgid "Create an AI Company with four AI employees and an initial strategy meeting. Nothing is approved or executed automatically."
+msgstr ""
+
 #: src/components/bot-templates/bot-templates-dialog.tsx
 msgid "Create bot"
 msgstr "ボットを作成"
@@ -2782,6 +3081,14 @@ msgstr "ボットを作成"
 #: src/pages/GroupPanel.tsx
 msgid "Create group"
 msgstr "グループを作成"
+
+#: src/pages/MeetingsPage.tsx
+msgid "Create investor meeting"
+msgstr ""
+
+#: src/pages/MeetingsPage.tsx
+msgid "Create meeting"
+msgstr ""
 
 #: src/components/CreateOrganizationDialog.tsx
 #: src/pages/OrganizationSettingsPanel.tsx
@@ -2797,6 +3104,22 @@ msgstr "ルーティンを作成"
 msgid "Create space"
 msgstr "スペースを作成"
 
+#: src/pages/WorkforcePage.tsx
+msgid "Create task"
+msgstr ""
+
+#: src/components/CreateAiCompany.tsx
+msgid "Create your AI Company"
+msgstr ""
+
+#: src/pages/OnboardingCompany.tsx
+msgid "Create Your AI Company"
+msgstr ""
+
+#: src/pages/OnboardingCompany.tsx
+msgid "Create your AI team, assign work, and let your AI employees collaborate to deliver real results."
+msgstr ""
+
 #: src/pages/Auth.tsx
 msgid "Create your RabbitBots"
 msgstr "RabbitBotsを作成"
@@ -2806,7 +3129,9 @@ msgid "Created"
 msgstr "作成済み"
 
 #: src/components/bot-templates/bot-templates-dialog.tsx
+#: src/components/CreateAiCompany.tsx
 #: src/pages/GroupPanel.tsx
+#: src/pages/OnboardingCompany.tsx
 #: src/pages/shell/agent-import-plan.tsx
 #: src/pages/shell/dialogs.tsx
 msgid "Creating…"
@@ -2848,14 +3173,30 @@ msgstr "Cron式"
 msgid "Currency"
 msgstr "通貨"
 
+#: src/pages/MeetingsPage.tsx
+msgid "Current agenda"
+msgstr ""
+
 #: src/components/AccountAccess.tsx
 #: src/pages/AccountSettingsOverlay.tsx
 msgid "Current password"
 msgstr "現在のパスワード"
 
+#: src/pages/MeetingsPage.tsx
+msgid "Current speaker"
+msgstr ""
+
 #: src/components/vault/VaultItemEditor.tsx
 msgid "Custom header"
 msgstr "カスタムヘッダー"
+
+#: src/components/UserNetworkProxySettings.tsx
+msgid "Custom proxy"
+msgstr ""
+
+#: src/components/UserNetworkProxySettings.tsx
+msgid "Custom proxy URL"
+msgstr ""
 
 #: src/pages/shell/dialogs.tsx
 msgid "Customer support"
@@ -2904,6 +3245,10 @@ msgstr "日々の業務"
 msgid "days"
 msgstr "日"
 
+#: src/pages/MeetingsPage.tsx
+msgid "Deadline"
+msgstr ""
+
 #: src/components/call/IncomingCall.tsx
 #: src/pages/MessagingSettingsPanel.tsx
 msgid "Decline"
@@ -2935,6 +3280,18 @@ msgstr "OpenClawの初期設定"
 #: src/pages/MemorySettingsOverlay.tsx
 msgid "Default scope"
 msgstr "デフォルトの範囲"
+
+#: src/pages/MeetingsPage.tsx
+msgid "Defer"
+msgstr ""
+
+#: src/pages/shell/orchestration-strip.tsx
+msgid "Delegation failed"
+msgstr ""
+
+#: src/pages/shell/orchestration-strip.tsx
+msgid "Delegation running"
+msgstr ""
 
 #: src/components/AccountAccess.tsx
 #: src/components/pages/PagesList.tsx
@@ -3017,6 +3374,14 @@ msgstr "削除中…"
 msgid "Deletion code"
 msgstr "削除コード"
 
+#: src/components/DeliveryQualityNotice.tsx
+msgid "Delivery quality"
+msgstr ""
+
+#: src/pages/MeetingsPage.tsx
+msgid "Demo context"
+msgstr ""
+
 #: src/components/AskCard.tsx
 msgid "Denied"
 msgstr "拒否済み"
@@ -3024,6 +3389,19 @@ msgstr "拒否済み"
 #: src/components/AskCard.tsx
 msgid "Deny"
 msgstr "拒否"
+
+#: src/pages/SettingsOverlay.tsx
+msgid "Deployment Default Proxy"
+msgstr ""
+
+#. placeholder {0}: view.deploymentProxyHost ?? "proxy"
+#: src/components/UserNetworkProxySettings.tsx
+msgid "Deployment default: {0}"
+msgstr ""
+
+#: src/components/UserNetworkProxySettings.tsx
+msgid "Deployment default: direct connection"
+msgstr ""
 
 #: src/pages/Board.tsx
 #: src/pages/shell/agent-import-plan.tsx
@@ -3078,6 +3456,15 @@ msgstr "<0>{emailSuggestion}</0> のことですか？"
 #: src/lib/dictation.ts
 msgid "Didn't catch that."
 msgstr "聞き取れませんでした。"
+
+#: src/components/NetworkProxySettings.tsx
+#: src/components/UserNetworkProxySettings.tsx
+msgid "Direct connection"
+msgstr ""
+
+#: src/components/NetworkProxySettings.tsx
+msgid "Direct connection (default)"
+msgstr ""
 
 #: src/pages/shell/bot-settings-sections.tsx
 msgid "Disable a tool"
@@ -3146,6 +3533,10 @@ msgstr "閉じました"
 msgid "Dismissed. Reconnect anytime from MCP settings."
 msgstr "閉じました。MCP設定からいつでも再接続できます。"
 
+#: src/pages/MeetingsPage.tsx
+msgid "Dissent:"
+msgstr ""
+
 #: src/pages/HostComputerPrompt.tsx
 msgid "Docker"
 msgstr "Docker"
@@ -3173,6 +3564,7 @@ msgstr "アカウントをお持ちでないですか？"
 #: src/pages/shell/avatar-studio-popover.tsx
 #: src/pages/shell/import-setup-card.tsx
 #: src/pages/shell/message-view.tsx
+#: src/pages/shell/orchestration-strip.tsx
 msgid "Done"
 msgstr "完了"
 
@@ -3213,6 +3605,10 @@ msgstr "スキルの下書き"
 #: src/pages/shell/avatar-studio-popover.tsx
 msgid "Drag, drop, or paste an image"
 msgstr "画像をドラッグ＆ドロップまたは貼り付け"
+
+#: src/pages/WorkforcePage.tsx
+msgid "Due date"
+msgstr ""
 
 #: src/pages/BotContextMenu.tsx
 msgid "Duplicate"
@@ -3328,6 +3724,7 @@ msgid "Environment variables: {names}"
 msgstr "環境変数: {names}"
 
 #: src/lib/roster-status.ts
+#: src/pages/shell/computer-workspace.tsx
 #: src/pages/shell/sidebar-roster.tsx
 msgid "Error"
 msgstr "エラー"
@@ -3389,6 +3786,23 @@ msgstr "ここにいる全員がチャット、ボット、メモリを閲覧で
 msgid "Everyone in this bot's space can read the chats it gets from {linkApp}."
 msgstr "このボットのスペースにいる全員が、{linkApp}から届いたチャットを読むことができます。"
 
+#: src/components/DeliveryQualityNotice.tsx
+msgid "Evidence"
+msgstr ""
+
+#: src/pages/MeetingsPage.tsx
+msgid "Evidence:"
+msgstr ""
+
+#: src/components/DeliveryQualityNotice.tsx
+msgid "Execution success does not mean the acceptance criteria were met or the evidence is verified."
+msgstr ""
+
+#: src/pages/MeetingsPage.tsx
+#: src/pages/shell/sidebar-header.tsx
+msgid "Executive Boardroom"
+msgstr ""
+
 #: src/pages/shell/message-cards.tsx
 msgid "Expand"
 msgstr "展開"
@@ -3417,6 +3831,10 @@ msgstr "有効期限 {expiry}"
 #: src/components/vault/VaultItemEditor.tsx
 msgid "Expiry"
 msgstr "有効期限"
+
+#: src/pages/OnboardingCompany.tsx
+msgid "Explore RabbitBots"
+msgstr ""
 
 #: src/components/AccountDataSettings.tsx
 #: src/pages/shell/bot-settings-sections.tsx
@@ -3452,6 +3870,7 @@ msgstr "失敗"
 
 #: src/components/SubagentCard.tsx
 #: src/pages/ActivityList.tsx
+#: src/pages/shell/orchestration-strip.tsx
 msgid "Failed"
 msgstr "失敗"
 
@@ -3540,6 +3959,10 @@ msgstr "モデルを検索"
 msgid "Finding…"
 msgstr "検索中…"
 
+#: src/components/DeliveryQualityNotice.tsx
+msgid "Findings"
+msgstr ""
+
 #: src/pages/shell/import-setup-card.tsx
 msgid "Finish setting up"
 msgstr "セットアップを完了"
@@ -3565,9 +3988,21 @@ msgstr "MCP接続を完了しています…"
 msgid "Focus message"
 msgstr "メッセージ欄に移動"
 
+#: src/pages/onboarding/model-step.tsx
+msgid "For Ollama or LM Studio, choose OpenAI-compatible."
+msgstr ""
+
 #: src/pages/Auth.tsx
 msgid "Forgot password?"
 msgstr "パスワードをお忘れですか？"
+
+#: src/pages/MeetingsPage.tsx
+msgid "Formal meeting minutes"
+msgstr ""
+
+#: src/pages/OnboardingCompany.tsx
+msgid "Four employees join your company. Keep the defaults or make them yours."
+msgstr ""
 
 #: src/components/ModelCredits.tsx
 msgid "Free"
@@ -3653,6 +4088,10 @@ msgstr "Gitイベント"
 msgid "Give a friend {weeks} weeks free"
 msgstr "友だちに{weeks}週間無料をプレゼント"
 
+#: src/pages/shell/investor-demo.tsx
+msgid "Glean investment due diligence"
+msgstr ""
+
 #: src/pages/NotFound.tsx
 msgid "Go home"
 msgstr "ホームへ"
@@ -3660,6 +4099,10 @@ msgstr "ホームへ"
 #: src/pages/shell/keyboard-shortcuts-dialog.tsx
 msgid "Go to bot"
 msgstr "ボットに移動"
+
+#: src/pages/OnboardingCompany.tsx
+msgid "Go to Dashboard"
+msgstr ""
 
 #: src/pages/AdminAccessPage.tsx
 msgid "Grant"
@@ -3737,6 +4180,10 @@ msgstr "非表示"
 msgid "Hide"
 msgstr "非表示"
 
+#: src/pages/shell/computer-workspace.tsx
+msgid "Hide computer"
+msgstr ""
+
 #: src/pages/routine-editor/trigger-cards.tsx
 msgid "Hide key"
 msgstr "キーを非表示"
@@ -3801,9 +4248,17 @@ msgstr "他のボットからの見え方"
 msgid "How to check"
 msgstr "確認方法"
 
+#: src/pages/WorkforcePage.tsx
+msgid "How will the CEO verify completion?"
+msgstr ""
+
 #: src/components/SignupSurvey.tsx
 msgid "How will you use RabbitBots?"
 msgstr "RabbitBotsをどのように使いますか？"
+
+#: src/components/NetworkProxySettings.tsx
+msgid "HTTP / HTTPS proxy"
+msgstr ""
 
 #: src/pages/shell/computer-release-actions.tsx
 msgid "I’m done"
@@ -3875,6 +4330,11 @@ msgstr "受信トレイの仕分け"
 msgid "Include API keys"
 msgstr "APIキーを含める"
 
+#: src/components/NetworkProxySettings.tsx
+#: src/components/UserNetworkProxySettings.tsx
+msgid "Include credentials in the URL only when required. Stored encrypted; never shown again."
+msgstr ""
+
 #: src/components/call/VoiceChatCard.tsx
 msgid "Incoming call"
 msgstr "着信"
@@ -3882,6 +4342,24 @@ msgstr "着信"
 #: src/pages/shell/bot-settings-sections.tsx
 msgid "Inherit default"
 msgstr "デフォルトを継承"
+
+#: src/components/UserNetworkProxySettings.tsx
+msgid "Inherit deployment"
+msgstr ""
+
+#. placeholder {0}: view.proxyHost ?? "proxy"
+#: src/components/UserNetworkProxySettings.tsx
+msgid "Inheriting deployment default: {0}"
+msgstr ""
+
+#. placeholder {0}: view.proxyHost ?? "proxy"
+#: src/components/UserNetworkProxySettings.tsx
+msgid "Inheriting deployment environment: {0}"
+msgstr ""
+
+#: src/components/UserNetworkProxySettings.tsx
+msgid "Inheriting direct default"
+msgstr ""
 
 #: src/pages/AccountSettingsOverlay.tsx
 msgid "Input"
@@ -3955,9 +4433,17 @@ msgstr "間隔の値"
 msgid "Interval unit"
 msgstr "間隔の単位"
 
+#: src/components/DeliveryQualityNotice.tsx
+msgid "invalid"
+msgstr ""
+
 #: src/lib/user-error.ts
 msgid "Invalid code"
 msgstr "無効なコード"
+
+#: src/pages/shell/investor-demo.tsx
+msgid "Investor demo"
+msgstr ""
 
 #: src/components/SpaceMembersSettings.tsx
 msgid "Invite"
@@ -4055,12 +4541,12 @@ msgstr "ラベル"
 msgid "Language"
 msgstr "言語"
 
-#. placeholder {0}: new Date(state.checkedAt).toLocaleString()
+#. placeholder {0}: new Date(state.checkedAt).toLocaleString(getActiveUiLocale())
 #: src/pages/routine-editor/trigger-cards.tsx
 msgid "Last check {0}: changed"
 msgstr "前回の確認 {0}: 変更あり"
 
-#. placeholder {0}: new Date(state.checkedAt).toLocaleString()
+#. placeholder {0}: new Date(state.checkedAt).toLocaleString(getActiveUiLocale())
 #: src/pages/routine-editor/trigger-cards.tsx
 msgid "Last check {0}: no changes"
 msgstr "前回の確認 {0}: 変更なし"
@@ -4078,6 +4564,11 @@ msgstr "退出"
 #: src/components/SpaceMembersSettings.tsx
 msgid "Leave {0}?"
 msgstr "{0}から退出しますか？"
+
+#: src/components/NetworkProxySettings.tsx
+#: src/components/UserNetworkProxySettings.tsx
+msgid "Leave blank to keep the saved proxy"
+msgstr ""
 
 #: src/components/SpaceMembersSettings.tsx
 msgid "Leave space"
@@ -4125,6 +4616,12 @@ msgstr "聞いています"
 msgid "Listening…"
 msgstr "聞いています…"
 
+#: src/pages/MeetingsPage.tsx
+#: src/pages/shell/computer-workspace.tsx
+#: src/pages/WorkforcePage.tsx
+msgid "Live"
+msgstr ""
+
 #: src/pages/shell/transcript.tsx
 msgid "Load earlier messages"
 msgstr "以前のメッセージを読み込む"
@@ -4149,6 +4646,10 @@ msgstr "アクティビティを読み込み中…"
 msgid "Loading integrations…"
 msgstr "連携を読み込み中…"
 
+#: src/pages/MeetingsPage.tsx
+msgid "Loading meeting…"
+msgstr ""
+
 #: src/pages/MemorySettingsOverlay.tsx
 msgid "Loading memory settings…"
 msgstr "メモリ設定を読み込み中…"
@@ -4170,11 +4671,17 @@ msgstr "プレビューを読み込み中…"
 msgid "Loading voice providers…"
 msgstr "音声プロバイダーを読み込み中…"
 
+#: src/pages/WorkforcePage.tsx
+msgid "Loading workforce…"
+msgstr ""
+
 #: src/components/bot-templates/bot-templates-dialog.tsx
 #: src/components/integrations/plugin-marketplace.tsx
 #: src/components/integrations/skills-dialog.tsx
+#: src/components/NetworkProxySettings.tsx
 #: src/components/PageLoading.tsx
 #: src/components/SpaceMembersSettings.tsx
+#: src/components/UserNetworkProxySettings.tsx
 #: src/pages/AdminAccessPage.tsx
 #: src/pages/Artifacts.tsx
 #: src/pages/IntegrationSetup.tsx
@@ -4193,6 +4700,10 @@ msgstr "ローカルアクセスでは、ボットが確認なしでコマンド
 #: src/pages/HostComputerPrompt.tsx
 msgid "Local computer access requires the latest desktop app."
 msgstr "ローカルコンピューターへのアクセスには最新のデスクトップアプリが必要です。"
+
+#: src/lib/model-connection-preflight.ts
+msgid "Local model endpoint is not allowed by this deployment."
+msgstr ""
 
 #: src/components/AccountMenu.tsx
 #: src/components/SidebarFooter.tsx
@@ -4288,6 +4799,10 @@ msgstr "Markdown テーブル"
 msgid "Marketing"
 msgstr "マーケティング"
 
+#: src/components/MeetingStructuredContent.tsx
+msgid "Material disagreement:"
+msgstr ""
+
 #: src/pages/model-settings/compatible-model-fields.tsx
 #: src/pages/onboarding/model-step.tsx
 msgid "Max"
@@ -4336,6 +4851,18 @@ msgstr "中"
 #: src/lib/model-catalog.ts
 msgid "Medium"
 msgstr "中"
+
+#: src/components/MeetingStructuredContent.tsx
+msgid "Meeting decision"
+msgstr ""
+
+#: src/pages/MeetingsPage.tsx
+msgid "Meeting transcript"
+msgstr ""
+
+#: src/pages/MeetingsPage.tsx
+msgid "Meetings"
+msgstr ""
 
 #: src/lib/identity-display.ts
 msgid "Member"
@@ -4417,6 +4944,19 @@ msgstr "{peer}からのメッセージ"
 msgid "Message from another agent"
 msgstr "他のエージェントからのメッセージ"
 
+#: src/pages/MeetingsPage.tsx
+msgid "Message the meeting"
+msgstr ""
+
+#: src/pages/MeetingsPage.tsx
+msgid "Message the meeting…"
+msgstr ""
+
+#. placeholder {0}: selectedAgenda.title
+#: src/pages/MeetingsPage.tsx
+msgid "Message the room about {0}…"
+msgstr ""
+
 #: src/pages/shell/composer.tsx
 msgid "Message…"
 msgstr "メッセージ…"
@@ -4473,6 +5013,14 @@ msgstr "分"
 msgid "Missed call"
 msgstr "不在着信"
 
+#: src/components/DeliveryQualityNotice.tsx
+msgid "missing"
+msgstr ""
+
+#: src/components/DeliveryQualityNotice.tsx
+msgid "Missing"
+msgstr ""
+
 #: src/components/ApprovalRulesSettings.tsx
 msgid "Mode"
 msgstr "モード"
@@ -4490,6 +5038,10 @@ msgstr "モデル"
 msgid "Model \"{modelId}\" was not listed."
 msgstr "モデル「{modelId}」は一覧にありませんでした。"
 
+#: src/pages/OnboardingCompany.tsx
+msgid "Model connected"
+msgstr ""
+
 #: src/pages/shell/bot-settings-sections.tsx
 msgid "Model connections"
 msgstr "モデル接続"
@@ -4498,6 +5050,14 @@ msgstr "モデル接続"
 #: src/pages/onboarding/model-step.tsx
 msgid "Model id"
 msgstr "モデルID"
+
+#: src/pages/OnboardingCompany.tsx
+msgid "Model not connected"
+msgstr ""
+
+#: src/pages/OnboardingCompany.tsx
+msgid "Model not connected yet"
+msgstr ""
 
 #: src/components/FoundModelPicker.tsx
 #: src/pages/model-settings/role-model-picker.tsx
@@ -4596,6 +5156,20 @@ msgstr "ミュート中"
 msgid "My computers"
 msgstr "マイコンピューター"
 
+#: src/components/UserNetworkProxySettings.tsx
+msgid "My proxy mode"
+msgstr ""
+
+#: src/pages/SettingsOverlay.tsx
+msgid "My Proxy Settings"
+msgstr ""
+
+#. placeholder {0}: view.proxyHost ?? "proxy"
+#. placeholder {1}: view.hasCredentials ? " · credentials saved" : ""
+#: src/components/UserNetworkProxySettings.tsx
+msgid "My proxy: {0}{1}"
+msgstr ""
+
 #: src/components/CreateOrganizationDialog.tsx
 #: src/components/teach/SkillDraftCard.tsx
 #: src/components/vault/VaultItemEditor.tsx
@@ -4631,6 +5205,10 @@ msgstr "グループに名前を付ける"
 #: src/pages/RoutineEditor.tsx
 msgid "Name this routine"
 msgstr "ルーティンに名前を付ける"
+
+#: src/pages/OnboardingCompany.tsx
+msgid "Name your AI company"
+msgstr ""
 
 #: src/pages/shell/create-bot-dialog.tsx
 msgid "Name your Bot"
@@ -4672,6 +5250,14 @@ msgstr "対応が必要"
 msgid "Needs: {names}"
 msgstr "必要: {names}"
 
+#: src/pages/settings-nav.ts
+msgid "Network & Proxy"
+msgstr ""
+
+#: src/components/NetworkProxySettings.tsx
+msgid "Network proxy mode"
+msgstr ""
+
 #: src/components/ApprovalRulesSettings.tsx
 msgid "Never ask"
 msgstr "確認しない"
@@ -4697,6 +5283,10 @@ msgstr "新しいボット"
 msgid "New card"
 msgstr "新しいカード"
 
+#: src/pages/WorkforcePage.tsx
+msgid "New CEO task"
+msgstr ""
+
 #: src/components/ComputerProviderSettings.tsx
 msgid "New computers run on"
 msgstr "新しいコンピューターの実行先"
@@ -4704,6 +5294,10 @@ msgstr "新しいコンピューターの実行先"
 #: src/components/VaultSettings.tsx
 msgid "New contact"
 msgstr "新しい連絡先"
+
+#: src/pages/MeetingsPage.tsx
+msgid "New executive meeting"
+msgstr ""
 
 #: src/pages/GroupPanel.tsx
 msgid "New group"
@@ -4718,6 +5312,10 @@ msgstr "新しいグループチャット"
 #: src/components/VaultSettings.tsx
 msgid "New login"
 msgstr "新しいログイン"
+
+#: src/pages/MeetingsPage.tsx
+msgid "New meeting"
+msgstr ""
 
 #: src/pages/shell/chat-context.tsx
 msgid "New messages"
@@ -4750,6 +5348,10 @@ msgstr "新しいスキル"
 msgid "New space"
 msgstr "新しいスペース"
 
+#: src/pages/WorkforcePage.tsx
+msgid "New task"
+msgstr ""
+
 #: src/pages/Board.tsx
 msgid "New ticket"
 msgstr "新しいチケット"
@@ -4770,6 +5372,10 @@ msgstr "次・前のボット"
 msgid "Next page"
 msgstr "次のページ"
 
+#: src/components/MeetingStructuredContent.tsx
+msgid "Next question:"
+msgstr ""
+
 #: src/pages/SettingsOverlay.tsx
 msgid "Next settings sections"
 msgstr "次の設定セクション"
@@ -4777,6 +5383,14 @@ msgstr "次の設定セクション"
 #: src/pages/BotContextMenu.tsx
 msgid "Next week"
 msgstr "来週"
+
+#: src/components/MeetingStructuredContent.tsx
+msgid "No"
+msgstr ""
+
+#: src/pages/MeetingsPage.tsx
+msgid "No action item recorded."
+msgstr ""
 
 #: src/pages/plugins/plugin-browse.tsx
 msgid "No apps match your search."
@@ -4798,6 +5412,14 @@ msgstr "ボットなし"
 #: src/pages/shell/bot-picker.tsx
 msgid "No bots match"
 msgstr "一致するボットはありません"
+
+#: src/pages/MeetingsPage.tsx
+msgid "No decision for this agenda yet."
+msgstr ""
+
+#: src/components/DeliveryQualityNotice.tsx
+msgid "No evidence recorded"
+msgstr ""
 
 #: src/components/AskCard.tsx
 #: src/components/SecretAskCard.tsx
@@ -4823,6 +5445,14 @@ msgstr "このページに一致するアーティファクトはありません
 msgid "No matching models"
 msgstr "一致するモデルはありません"
 
+#: src/pages/onboarding/model-step.tsx
+msgid "No matching providers. Clear the search to see all providers."
+msgstr ""
+
+#: src/pages/MeetingsPage.tsx
+msgid "No meetings yet."
+msgstr ""
+
 #: src/pages/GroupPanel.tsx
 msgid "No members yet"
 msgstr "メンバーはまだいません"
@@ -4835,6 +5465,10 @@ msgstr "{peerBotName}とのメッセージはまだありません。"
 msgid "No model catalog is available."
 msgstr "利用できるモデルカタログがありません。"
 
+#: src/pages/OnboardingCompany.tsx
+msgid "No model is connected. You can create the company now, but a task needs a model before it can run."
+msgstr ""
+
 #: src/lib/model-connection-preflight.ts
 msgid "No models listed."
 msgstr "モデルが一覧にありません。"
@@ -4846,6 +5480,14 @@ msgstr "OpenClaw、Hermes、またはエージェントのドキュメントが�
 #: src/components/pages/PagesList.tsx
 msgid "No pages match “{query}”."
 msgstr "「{query}」に一致するページはありません。"
+
+#: src/pages/MeetingsPage.tsx
+msgid "No participant has spoken on this agenda yet."
+msgstr ""
+
+#: src/pages/MeetingsPage.tsx
+msgid "No pending approvals."
+msgstr ""
 
 #: src/components/integrations/IntegrationSetup.tsx
 msgid "No remote MCP servers found"
@@ -4890,6 +5532,10 @@ msgstr "スキルはまだありません"
 msgid "No submissions"
 msgstr "申請はありません"
 
+#: src/pages/WorkforcePage.tsx
+msgid "No tasks assigned to this bot yet."
+msgstr ""
+
 #: src/pages/Board.tsx
 msgid "No tickets yet"
 msgstr "チケットはまだありません"
@@ -4929,8 +5575,8 @@ msgid "Not imported"
 msgstr "インポートされていません"
 
 #: src/pages/shell/import-status.ts
-msgid "Not in RabbitBots's catalog"
-msgstr "RabbitBotsのカタログにありません"
+msgid "Not in RabbitBots' catalog"
+msgstr ""
 
 #: src/pages/plugins/plugin-browse.tsx
 msgid "Not in the plugin catalog"
@@ -4941,6 +5587,15 @@ msgstr "プラグインカタログにありません"
 msgid "Not now"
 msgstr "今はしない"
 
+#: src/components/DeliveryQualityNotice.tsx
+msgid "Not required by criteria"
+msgstr ""
+
+#: src/pages/shell/computer-panel.tsx
+#: src/pages/shell/computer-workspace.tsx
+msgid "Not started"
+msgstr ""
+
 #: src/pages/shell/agent-import-plan.tsx
 #: src/pages/shell/import-status.ts
 msgid "Not supported in RabbitBots"
@@ -4949,6 +5604,10 @@ msgstr "RabbitBotsでは未対応です"
 #: src/pages/shell/agent-import-plan.tsx
 msgid "Not used by RabbitBots"
 msgstr "RabbitBotsでは使用しません"
+
+#: src/components/DeliveryQualityNotice.tsx
+msgid "NOT VERIFIED"
+msgstr ""
 
 #: src/components/McpServerHealthLine.tsx
 #: src/pages/plugins/parts.tsx
@@ -4983,6 +5642,10 @@ msgstr "OAuthクライアントシークレット（任意）"
 msgid "OAuth connection failed"
 msgstr "OAuth接続に失敗しました"
 
+#: src/pages/MeetingsPage.tsx
+msgid "Objective"
+msgstr ""
+
 #: src/components/ComputerDeviceSettings.tsx
 msgid "Offline"
 msgstr "オフライン"
@@ -5004,6 +5667,10 @@ msgstr "1日 {0}"
 #: src/components/AskCard.tsx
 msgid "On the button"
 msgstr "ボタンの金額"
+
+#: src/pages/OnboardingCompany.tsx
+msgid "One company, four AI employees and a boardroom. Nothing runs until you ask."
+msgstr ""
 
 #: src/lib/cron.ts
 msgid "One-time"
@@ -5062,6 +5729,10 @@ msgstr "{title} を開く"
 msgid "Open <0>{0}</0> and enter this code:"
 msgstr "<0>{0}</0>を開いて、このコードを入力してください:"
 
+#: src/pages/OnboardingCompany.tsx
+msgid "Open Boardroom"
+msgstr ""
+
 #: src/pages/shell/chat-header.tsx
 msgid "Open call"
 msgstr "通話を開く"
@@ -5071,15 +5742,24 @@ msgstr "通話を開く"
 msgid "Open chat with {0}"
 msgstr "{0}とのチャットを開く"
 
+#: src/pages/shell/chat-header.tsx
+msgid "Open computer"
+msgstr ""
+
 #: src/components/ComputersUnavailableHint.tsx
 msgid "Open computer settings"
 msgstr "コンピューター設定を開く"
+
+#: src/components/CreateAiCompany.tsx
+msgid "Open Executive Boardroom"
+msgstr ""
 
 #: src/components/markdown-link-prompt.tsx
 msgid "Open external link?"
 msgstr "外部リンクを開きますか？"
 
 #: src/pages/shell/computer-panel.tsx
+#: src/pages/shell/computer-workspace.tsx
 msgid "Open in full window"
 msgstr "フルウィンドウで開く"
 
@@ -5097,9 +5777,17 @@ msgstr "ナビゲーションを開く"
 msgid "Open RabbitBots"
 msgstr "RabbitBots を開く"
 
+#: src/pages/OnboardingCompany.tsx
+msgid "Open the Executive Boardroom"
+msgstr ""
+
 #: src/pages/ScratchpadSection.tsx
 msgid "Open work"
 msgstr "未完了の作業"
+
+#: src/pages/OnboardingCompany.tsx
+msgid "Open Workforce"
+msgstr ""
 
 #: src/pages/onboarding/use-onboarding-model.ts
 msgid "OpenAI API"
@@ -5118,9 +5806,14 @@ msgstr "OpenClawまたはHermes"
 msgid "Opens your browser's print dialog. Choose Save as PDF as the destination."
 msgstr "ブラウザの印刷ダイアログを開きます。送信先に「PDF に保存」を選んでください。"
 
+#: src/pages/WorkforcePage.tsx
+msgid "Operations"
+msgstr ""
+
 #: src/components/SignupSurvey.tsx
 #: src/pages/model-settings/connection-controls.tsx
 #: src/pages/onboarding/model-step.tsx
+#: src/pages/OnboardingCompany.tsx
 #: src/pages/VoiceSettingsOverlay.tsx
 msgid "Optional"
 msgstr "任意"
@@ -5133,6 +5826,10 @@ msgstr "ヘッダー値（任意）"
 #: src/pages/onboarding/model-step.tsx
 msgid "Or paste an API key"
 msgstr "またはAPIキーを貼り付け"
+
+#: src/pages/MeetingsPage.tsx
+msgid "or start a meeting."
+msgstr ""
 
 #: src/components/ComputerProviderSettings.tsx
 #: src/pages/settings-nav.ts
@@ -5156,6 +5853,10 @@ msgstr "元のメッセージを表示できません"
 #: src/pages/model-settings/compatible-model-fields.tsx
 msgid "Other model…"
 msgstr "その他のモデル…"
+
+#: src/components/NetworkProxySettings.tsx
+msgid "Outbound network"
+msgstr ""
 
 #: src/pages/AccountSettingsOverlay.tsx
 msgid "Output"
@@ -5223,6 +5924,10 @@ msgstr "このボットが作成したページがここに表示されます。
 #: src/components/pages/PagesList.tsx
 msgid "Pages this group builds for you appear here. Ask for a dashboard, tracker or plan to make one."
 msgstr "このグループが作成したページがここに表示されます。ダッシュボード、トラッカー、計画などを頼むと作成されます。"
+
+#: src/pages/MeetingsPage.tsx
+msgid "Participants"
+msgstr ""
 
 #: src/components/PasskeySettings.tsx
 msgid "Passkey"
@@ -5298,6 +6003,10 @@ msgstr "一時停止中"
 #: src/pages/PluginSubmissionsPanel.tsx
 msgid "Pending"
 msgstr "保留中"
+
+#: src/pages/MeetingsPage.tsx
+msgid "Pending approvals"
+msgstr ""
 
 #: src/pages/shell/bot-settings-sections.tsx
 msgid "Permissions"
@@ -5419,6 +6128,7 @@ msgid "Previous settings sections"
 msgstr "前の設定セクション"
 
 #: src/pages/Board.tsx
+#: src/pages/WorkforcePage.tsx
 msgid "Priority"
 msgstr "優先度"
 
@@ -5456,11 +6166,16 @@ msgstr "プロバイダー"
 msgid "Providers"
 msgstr "プロバイダー"
 
+#: src/components/NetworkProxySettings.tsx
+msgid "Proxy URL"
+msgstr ""
+
 #: src/components/CloudAgentCard.tsx
 msgid "Pull request"
 msgstr "プルリクエスト"
 
 #: src/pages/ActivityList.tsx
+#: src/pages/shell/orchestration-strip.tsx
 msgid "Queued"
 msgstr "待機中"
 
@@ -5476,6 +6191,18 @@ msgstr "RabbitBotsクレジット"
 #: src/pages/memory-providers/HonchoSettingsForm.tsx
 msgid "rakazo-shared and IDs starting with bot- are reserved for RabbitBots."
 msgstr "rakazo-sharedおよびbot-で始まるIDはRabbitBots用に予約されています。"
+
+#: src/pages/MeetingsPage.tsx
+msgid "Rationale (optional)"
+msgstr ""
+
+#: src/pages/MeetingsPage.tsx
+msgid "Rationale (required)"
+msgstr ""
+
+#: src/pages/MeetingsPage.tsx
+msgid "Re-run"
+msgstr ""
 
 #: src/pages/shell/message-hover-actions.tsx
 msgid "React"
@@ -5497,6 +6224,10 @@ msgstr "返信を読み上げる"
 msgid "Ready"
 msgstr "準備完了"
 
+#: src/pages/WorkforcePage.tsx
+msgid "Real tasks, executions and CEO acceptance across your bot team."
+msgstr ""
+
 #: src/pages/PluginSubmissionsPanel.tsx
 msgid "Reason"
 msgstr "理由"
@@ -5505,6 +6236,10 @@ msgstr "理由"
 #: src/pages/onboarding/model-step.tsx
 msgid "Reasoning effort"
 msgstr "推論レベル"
+
+#: src/pages/WorkforcePage.tsx
+msgid "Reassign task"
+msgstr ""
 
 #: src/pages/memory-providers/SerenitySettingsForm.tsx
 msgid "Recall and write"
@@ -5547,6 +6282,10 @@ msgstr "OAuthを再接続"
 #: src/components/ComputerUpdateProgress.tsx
 msgid "Reconnecting"
 msgstr "再接続中"
+
+#: src/pages/MeetingsPage.tsx
+msgid "Reconnecting…"
+msgstr ""
 
 #: src/components/teach/TeachComputerOverlay.tsx
 msgid "Recording may have started, but the view could not refresh"
@@ -5615,6 +6354,8 @@ msgstr "リダイレクトURI"
 #: src/App.tsx
 #: src/components/ErrorBoundary.tsx
 #: src/components/ModelCredits.tsx
+#: src/pages/MeetingsPage.tsx
+#: src/pages/WorkforcePage.tsx
 msgid "Refresh"
 msgstr "更新"
 
@@ -5638,6 +6379,8 @@ msgstr "リージョン"
 msgid "Registration is closed"
 msgstr "新規登録は締め切られています"
 
+#: src/components/AskCard.tsx
+#: src/pages/MeetingsPage.tsx
 #: src/pages/PluginSubmissionsPanel.tsx
 msgid "Reject"
 msgstr "却下"
@@ -5647,6 +6390,7 @@ msgstr "却下"
 msgid "Reject {0}"
 msgstr "{0}を却下"
 
+#: src/components/AskCard.tsx
 #: src/pages/PluginSubmissionsPanel.tsx
 msgid "Rejected"
 msgstr "却下済み"
@@ -5823,9 +6567,21 @@ msgstr "返信をキャンセルしました"
 msgid "Replying to {0}"
 msgstr "{0}に返信中"
 
+#: src/pages/shell/orchestration-strip.tsx
+msgid "Report ready"
+msgstr ""
+
+#: src/pages/shell/orchestration-strip.tsx
+msgid "Report ready · partial"
+msgstr ""
+
 #: src/lib/user-error.ts
 msgid "Request a new code"
 msgstr "新しいコードをリクエスト"
+
+#: src/pages/MeetingsPage.tsx
+msgid "Request evidence"
+msgstr ""
 
 #: src/pages/MessagingSettingsPanel.tsx
 msgid "Requests"
@@ -5912,6 +6668,7 @@ msgstr "ワークスペースを復元中"
 
 #: src/components/AccountAccess.tsx
 #: src/components/bot-templates/bot-templates-dialog.tsx
+#: src/components/CreateAiCompany.tsx
 #: src/components/integrations/plugin-marketplace.tsx
 #: src/components/integrations/skills-dialog.tsx
 #: src/components/PasskeySettings.tsx
@@ -5963,6 +6720,10 @@ msgstr "取り消す"
 msgid "Revoked"
 msgstr "取り消し済み"
 
+#: src/pages/MeetingsPage.tsx
+msgid "Risks:"
+msgstr ""
+
 #: src/components/ComputerProviderSettings.tsx
 msgid "Root filesystem"
 msgstr "ルートファイルシステム"
@@ -5970,6 +6731,14 @@ msgstr "ルートファイルシステム"
 #: src/pages/routine-editor/trigger-cards.tsx
 msgid "Rotate key"
 msgstr "キーをローテーション"
+
+#: src/pages/MeetingsPage.tsx
+msgid "Round"
+msgstr ""
+
+#: src/components/NetworkProxySettings.tsx
+msgid "Route server-side model, web fetch and search traffic through an HTTP or HTTPS proxy. This does not configure bot computers or their browsers."
+msgstr ""
 
 #: src/lib/identity-display.ts
 #: src/pages/RoutineEditor.tsx
@@ -5990,6 +6759,14 @@ msgstr "不在中に実行されるルーティン"
 #: src/components/markdown-copy.tsx
 msgid "Row"
 msgstr "行"
+
+#: src/pages/MeetingsPage.tsx
+msgid "Run"
+msgstr ""
+
+#: src/pages/MeetingsPage.tsx
+msgid "Run a boardroom meeting"
+msgstr ""
 
 #: src/pages/RoutineEditor.tsx
 msgid "Run at"
@@ -6070,6 +6847,14 @@ msgstr "土曜日"
 msgid "Save"
 msgstr "保存"
 
+#: src/components/UserNetworkProxySettings.tsx
+msgid "Save my proxy"
+msgstr ""
+
+#: src/components/NetworkProxySettings.tsx
+msgid "Save network proxy"
+msgstr ""
+
 #: src/components/ComputerMaintenanceActions.tsx
 msgid "Save the workspace and install current software."
 msgstr "ワークスペースを保存して、最新のソフトウェアをインストールします。"
@@ -6088,6 +6873,16 @@ msgstr "保存しました"
 #: src/pages/ScratchpadSection.tsx
 msgid "Saved, but list refresh failed"
 msgstr "保存しましたが、一覧を更新できませんでした"
+
+#. placeholder {0}: view.proxyHost ?? "proxy"
+#. placeholder {1}: view.hasCredentials ? " · credentials saved" : ""
+#: src/components/NetworkProxySettings.tsx
+msgid "Saved: {0}{1}"
+msgstr ""
+
+#: src/components/NetworkProxySettings.tsx
+msgid "Saved: direct connection"
+msgstr ""
 
 #: src/pages/model-settings/use-model-settings.ts
 msgid "Saved."
@@ -6191,6 +6986,14 @@ msgstr "MCPサーバーで「{query}」を検索"
 msgid "Search models"
 msgstr "モデルを検索"
 
+#: src/pages/onboarding/model-step.tsx
+msgid "Search providers"
+msgstr ""
+
+#: src/pages/onboarding/model-step.tsx
+msgid "Search providers (Ollama, OpenAI, DeepSeek…)"
+msgstr ""
+
 #: src/pages/shell/shell-sidebar.tsx
 msgid "Search runs"
 msgstr "実行を検索"
@@ -6238,10 +7041,15 @@ msgstr "セキュリティコード"
 msgid "Select a bot"
 msgstr "ボットを選択"
 
+#: src/pages/MeetingsPage.tsx
+msgid "Select a meeting to open the room."
+msgstr ""
+
 #: src/pages/memory-providers/ConnectionModeFields.tsx
 msgid "Self-hosted"
 msgstr "セルフホスト"
 
+#: src/pages/MeetingsPage.tsx
 #: src/pages/shell/composer-parts.tsx
 msgid "Send"
 msgstr "送信"
@@ -6278,6 +7086,10 @@ msgstr "録音を送信"
 msgid "Send reset link"
 msgstr "リセットリンクを送信"
 
+#: src/pages/OnboardingCompany.tsx
+msgid "Send to your AI company"
+msgstr ""
+
 #: src/pages/AccountSettingsOverlay.tsx
 msgid "Send with Enter"
 msgstr "Enterで送信"
@@ -6309,9 +7121,17 @@ msgstr "サーバー名"
 msgid "Server URL"
 msgstr "サーバーURL"
 
+#: src/pages/settings-nav.ts
+msgid "Server-side proxy for model and web traffic."
+msgstr ""
+
 #: src/components/SpendingLimitSettings.tsx
 msgid "Set"
 msgstr "設定"
+
+#: src/lib/model-connection-preflight.ts
+msgid "Set MCP_ALLOW_PRIVATE_ENDPOINT=true on both API and Worker, then restart the services."
+msgstr ""
 
 #: src/components/call/CallCard.tsx
 #: src/components/SidebarFooter.tsx
@@ -6393,6 +7213,10 @@ msgstr "すべて表示"
 #: src/pages/shell/sidebar-header.tsx
 msgid "Show bots"
 msgstr "ボットを表示"
+
+#: src/pages/shell/computer-workspace.tsx
+msgid "Show computer"
+msgstr ""
 
 #: src/pages/routine-editor/trigger-cards.tsx
 msgid "Show key"
@@ -6592,6 +7416,10 @@ msgstr "{column} で並べ替え済み、降順"
 msgid "Sorts new email and drafts the replies"
 msgstr "新着メールを仕分けて返信の下書きを作成"
 
+#: src/pages/MeetingsPage.tsx
+msgid "Sources"
+msgstr ""
+
 #: src/lib/identity-display.ts
 #: src/pages/SettingsOverlay.tsx
 msgid "Space"
@@ -6638,6 +7466,7 @@ msgid "Star on GitHub"
 msgstr "GitHubでスターを付ける"
 
 #: src/pages/shell/computer-overlay.tsx
+#: src/pages/shell/computer-panel.tsx
 msgid "Start"
 msgstr "起動"
 
@@ -6645,6 +7474,14 @@ msgstr "起動"
 #: src/pages/Paywall.tsx
 msgid "Start {trialDays}-day free trial"
 msgstr "{trialDays}日間の無料トライアルを開始"
+
+#: src/pages/shell/investor-demo.tsx
+msgid "Start investor demo"
+msgstr ""
+
+#: src/pages/MeetingsPage.tsx
+msgid "Start meeting"
+msgstr ""
 
 #: src/components/ModelCredits.tsx
 msgid "Start plan"
@@ -6658,6 +7495,22 @@ msgstr "今すぐプランを開始"
 #: src/components/teach/TeachComputerOverlay.tsx
 msgid "Start recording"
 msgstr "録画を開始"
+
+#: src/pages/shell/investor-demo.tsx
+msgid "Start the investor demo?"
+msgstr ""
+
+#: src/components/CreateAiCompany.tsx
+msgid "Start with four AI employees and a first boardroom meeting. Nothing is approved or executed automatically."
+msgstr ""
+
+#: src/pages/OnboardingCompany.tsx
+msgid "Start with one clear outcome. Your CEO Assistant will organize the work."
+msgstr ""
+
+#: src/pages/OnboardingCompany.tsx
+msgid "Start Your First Task"
+msgstr ""
 
 #: src/components/ModelCredits.tsx
 msgid "Start your plan now?"
@@ -6683,12 +7536,18 @@ msgstr "開始中"
 #: src/lib/roster-status.ts
 #: src/pages/model-settings/connection-controls.tsx
 #: src/pages/onboarding/model-step.tsx
+#: src/pages/OnboardingCompany.tsx
+#: src/pages/shell/computer-workspace.tsx
 msgid "Starting…"
 msgstr "開始中…"
 
 #: src/components/vault/VaultItemEditor.tsx
 msgid "State or region"
 msgstr "都道府県・地域"
+
+#: src/components/MeetingStructuredContent.tsx
+msgid "State:"
+msgstr ""
 
 #: src/pages/ActivityList.tsx
 #: src/pages/Board.tsx
@@ -6720,6 +7579,8 @@ msgid "Stop teaching"
 msgstr "ティーチングを停止"
 
 #: src/components/SubagentCard.tsx
+#: src/pages/shell/computer-panel.tsx
+#: src/pages/shell/computer-workspace.tsx
 msgid "Stopped"
 msgstr "停止済み"
 
@@ -6739,6 +7600,18 @@ msgstr "暗号化して保存済み"
 #: src/pages/AccountSettingsOverlay.tsx
 msgid "Stream replies"
 msgstr "返信をストリーミング"
+
+#: src/components/DeliveryQualityNotice.tsx
+msgid "STRUCTURALLY INCOMPLETE"
+msgstr ""
+
+#: src/components/DeliveryQualityNotice.tsx
+msgid "Structure present; content not independently verified"
+msgstr ""
+
+#: src/components/MeetingStructuredContent.tsx
+msgid "Structured meeting output is saved in the meeting record. It cannot be displayed here without exposing raw internal data."
+msgstr ""
 
 #: src/lib/identity-display.ts
 msgid "subagent"
@@ -6822,12 +7695,41 @@ msgid "Table"
 msgstr "テーブル"
 
 #: src/pages/shell/computer-overlay.tsx
+#: src/pages/shell/computer-workspace.tsx
 msgid "Take control"
 msgstr "操作を引き継ぐ"
 
 #: src/components/ComputerProviderSettings.tsx
 msgid "Target"
 msgstr "ターゲット"
+
+#: src/pages/shell/investor-demo.tsx
+msgid "Task"
+msgstr ""
+
+#: src/pages/OnboardingCompany.tsx
+msgid "Task created"
+msgstr ""
+
+#: src/pages/WorkforcePage.tsx
+msgid "Task description"
+msgstr ""
+
+#: src/pages/WorkforcePage.tsx
+msgid "Task source"
+msgstr ""
+
+#: src/pages/WorkforcePage.tsx
+msgid "Task status"
+msgstr ""
+
+#: src/pages/WorkforcePage.tsx
+msgid "Task time"
+msgstr ""
+
+#: src/pages/WorkforcePage.tsx
+msgid "Task title"
+msgstr ""
 
 #: src/components/teach/TeachComputerOverlay.tsx
 msgid "Teach a task"
@@ -6868,6 +7770,8 @@ msgid "Test API key"
 msgstr "APIキーをテスト"
 
 #: src/components/ModelConnectionPreflightNotice.tsx
+#: src/components/NetworkProxySettings.tsx
+#: src/components/UserNetworkProxySettings.tsx
 #: src/pages/McpServersOverlay.tsx
 msgid "Test connection"
 msgstr "接続をテスト"
@@ -6896,6 +7800,10 @@ msgstr "ボットのブラウザは、このスペースの全員に対してロ
 msgid "The browser keeps dropping the microphone. Start dictation again to retry."
 msgstr "ブラウザでマイクの接続が切れ続けています。音声入力をもう一度開始して再試行してください。"
 
+#: src/pages/MeetingsPage.tsx
+msgid "The chair publishes the summary after the decision."
+msgstr ""
+
 #: src/pages/settings-nav.ts
 msgid "The computer your bots work on."
 msgstr "ボットが作業するコンピューター。"
@@ -6919,6 +7827,18 @@ msgstr "モデルプロバイダーがエラーを返しました。"
 msgid "The model returned an unusable response. Try again."
 msgstr "モデルが利用できない応答を返しました。もう一度お試しください。"
 
+#: src/lib/model-connection-preflight.ts
+msgid "The model server hostname could not be resolved."
+msgstr ""
+
+#: src/lib/model-connection-preflight.ts
+msgid "The model server refused the connection."
+msgstr ""
+
+#: src/lib/model-connection-preflight.ts
+msgid "The model was not found on this server."
+msgstr ""
+
 #: src/pages/SharedPage.tsx
 msgid "The owner may have turned off its link or deleted it."
 msgstr "所有者がリンクをオフにしたか、ページを削除した可能性があります。"
@@ -6926,6 +7846,10 @@ msgstr "所有者がリンクをオフにしたか、ページを削除した可
 #: src/lib/model-connection-preflight.ts
 msgid "The provider is rate-limiting requests."
 msgstr "プロバイダーがリクエストを制限しています。"
+
+#: src/lib/model-connection-preflight.ts
+msgid "The provider returned a server error."
+msgstr ""
 
 #: src/lib/computer-screen.ts
 msgid "The screen connection closed."
@@ -6942,6 +7866,10 @@ msgstr "画面リンクの有効期限が切れました。"
 #: src/pages/MemorySettingsOverlay.tsx
 msgid "The selected memory provider is not available in this build."
 msgstr "選択したメモリプロバイダーはこのビルドでは利用できません。"
+
+#: src/lib/model-connection-preflight.ts
+msgid "The server URL is invalid."
+msgstr ""
 
 #: src/components/pages/SharePopover.tsx
 msgid "The shared link stops working"
@@ -7038,6 +7966,10 @@ msgstr "この接続のリクエスト上限が小さすぎます。別のモデ
 msgid "This conversation is too long for the model. Retrying won't help. Start a new chat or shorten your message."
 msgstr "この会話はモデルにとって長すぎます。再試行しても解決しません。新しいチャットを開始するか、メッセージを短くしてください。"
 
+#: src/components/CreateAiCompany.tsx
+msgid "This creates four employees and a draft strategy meeting. It does not approve decisions, start tasks, or spend money."
+msgstr ""
+
 #. placeholder {0}: pendingDelete.versionCount
 #: src/pages/Artifacts.tsx
 msgid "This deletes all {0} versions of this artifact. This can't be undone."
@@ -7055,9 +7987,17 @@ msgstr "このインポートはすでに使用されています。もう一度
 msgid "This invite link is no longer valid."
 msgstr "この招待リンクは無効になりました。"
 
+#: src/pages/OnboardingCompany.tsx
+msgid "This is what your team will call home. You can change it later."
+msgstr ""
+
 #: src/pages/HostComputerPrompt.tsx
 msgid "this Mac"
 msgstr "このMac"
+
+#: src/pages/MeetingsPage.tsx
+msgid "This meeting has ended; its transcript is read-only."
+msgstr ""
 
 #. js-lingui-explicit-id
 #: src/lib/run-error.ts
@@ -7120,6 +8060,10 @@ msgstr "すべてのスペースからこの接続が削除されます。"
 msgid "This reset link is invalid or expired"
 msgstr "このリセットリンクは無効か期限切れです"
 
+#: src/pages/shell/investor-demo.tsx
+msgid "This sends the task to CEO Assistant and runs Research Bot and Finance Bot for real."
+msgstr ""
+
 #: src/pages/shell/message-cards.tsx
 msgid "This server cannot be assigned without a bot."
 msgstr "このサーバーはボットなしでは割り当てられません。"
@@ -7157,6 +8101,10 @@ msgstr "木曜日"
 msgid "Time of day"
 msgstr "時刻"
 
+#: src/pages/shell/orchestration-strip.tsx
+msgid "Timed out"
+msgstr ""
+
 #: src/pages/AccountSettingsOverlay.tsx
 msgid "Timezone"
 msgstr "タイムゾーン"
@@ -7166,6 +8114,7 @@ msgid "Timing may differ"
 msgstr "実行タイミングが異なる場合があります"
 
 #: src/pages/Board.tsx
+#: src/pages/MeetingsPage.tsx
 msgid "Title"
 msgstr "タイトル"
 
@@ -7280,7 +8229,9 @@ msgstr "信頼済みサイト"
 #: src/components/pages/PageNotice.tsx
 #: src/components/pages/PagesList.tsx
 #: src/pages/ActivityList.tsx
+#: src/pages/Onboarding.tsx
 #: src/pages/onboarding/first-bot.tsx
+#: src/pages/OnboardingCompany.tsx
 #: src/pages/SharedPage.tsx
 #: src/pages/SpaceSearch.tsx
 msgid "Try again"
@@ -7324,6 +8275,12 @@ msgstr "回答を入力"
 msgid "Unassigned"
 msgstr "未割り当て"
 
+#: src/components/NetworkProxySettings.tsx
+#: src/components/UserNetworkProxySettings.tsx
+#: src/pages/shell/computer-workspace.tsx
+msgid "Unavailable"
+msgstr ""
+
 #: src/components/AskCard.tsx
 msgid "Undo"
 msgstr "元に戻す"
@@ -7363,6 +8320,10 @@ msgstr "{0}のスヌーズを解除"
 #: src/pages/shell/use-composer-actions.ts
 msgid "Unsupported file type: {0}"
 msgstr "サポートされていないファイル形式です: {0}"
+
+#: src/components/DeliveryQualityNotice.tsx
+msgid "unverified"
+msgstr ""
 
 #: src/components/DesktopUpdates.tsx
 msgid "Up to date"
@@ -7478,6 +8439,10 @@ msgstr "デフォルトを使用"
 msgid "Use defaults for {label}"
 msgstr "{label}でデフォルトを使用"
 
+#: src/lib/model-connection-preflight.ts
+msgid "Use Find models or enter an exact model id returned by the server."
+msgstr ""
+
 #: src/components/integrations/plugin-marketplace.tsx
 msgid "Use in this bot"
 msgstr "このボットで使用"
@@ -7501,6 +8466,10 @@ msgstr "パスワードには保護された入力を使用してください。
 #: src/components/ModelCredits.tsx
 msgid "Use RabbitBots credits"
 msgstr "RabbitBotsクレジットを使用"
+
+#: src/lib/model-connection-preflight.ts
+msgid "Use the full base URL, including /v1 and the http or https scheme."
+msgstr ""
 
 #: src/pages/memory-providers/HonchoSettingsForm.tsx
 msgid "Use up to 512 letters, digits, _ or -."
@@ -7527,6 +8496,11 @@ msgstr "お使いのコンピューター上のパスを使用しています"
 #: src/pages/ModelSettingsOverlay.tsx
 msgid "Uses this server's own {hostCredentialSource} credentials to access {selectedProviderName}."
 msgstr "このサーバー自身の{hostCredentialSource}認証情報を使用して{selectedProviderName}にアクセスします。"
+
+#. placeholder {0}: view.proxyHost ?? "proxy"
+#: src/components/NetworkProxySettings.tsx
+msgid "Using deployment environment: {0}"
+msgstr ""
 
 #: src/components/ModelCredits.tsx
 msgid "Using your API key"
@@ -7561,6 +8535,10 @@ msgstr "変数"
 msgid "Vault"
 msgstr "保管庫"
 
+#: src/components/DeliveryQualityNotice.tsx
+msgid "Verification note"
+msgstr ""
+
 #: src/pages/plugins/source-form.tsx
 msgid "Verify and add"
 msgstr "確認して追加"
@@ -7576,6 +8554,10 @@ msgstr "バージョン"
 #: src/pages/plugins/plugin-browse.tsx
 msgid "View all"
 msgstr "すべて表示"
+
+#: src/pages/shell/orchestration-strip.tsx
+msgid "View report"
+msgstr ""
 
 #: src/components/integrations/plugin-marketplace.tsx
 msgid "View source"
@@ -7645,6 +8627,7 @@ msgid "Weekly"
 msgstr "毎週"
 
 #: src/components/SignupSurvey.tsx
+#: src/pages/OnboardingCompany.tsx
 msgid "Welcome to RabbitBots"
 msgstr "RabbitBotsへようこそ"
 
@@ -7668,6 +8651,10 @@ msgstr "まず何から取りかかりましょうか？"
 msgid "What result will you demonstrate?"
 msgstr "どんな結果を実演しますか？"
 
+#: src/pages/WorkforcePage.tsx
+msgid "What should the bot do?"
+msgstr ""
+
 #: src/pages/RoutineEditor.tsx
 msgid "What should this routine do each time it runs?"
 msgstr "このルーティンは実行のたびに何をしますか？"
@@ -7683,6 +8670,10 @@ msgstr "返す内容"
 #: src/pages/routine-editor/trigger-cards.tsx
 msgid "What to watch"
 msgstr "監視する対象"
+
+#: src/pages/OnboardingCompany.tsx
+msgid "What would you like your AI company to accomplish?"
+msgstr ""
 
 #: src/pages/settings-nav.ts
 msgid "What your bots remember between chats."
@@ -7754,6 +8745,7 @@ msgid "Work"
 msgstr "仕事"
 
 #: src/pages/ActivityList.tsx
+#: src/pages/shell/orchestration-strip.tsx
 msgid "Working"
 msgstr "作業中"
 
@@ -7780,6 +8772,14 @@ msgstr "ChatGPT または Claude のプランで使えます。"
 msgid "Workspace"
 msgstr "ワークスペース"
 
+#: src/pages/shell/orchestration-strip.tsx
+msgid "Writing final report"
+msgstr ""
+
+#: src/pages/shell/orchestration-strip.tsx
+msgid "Writing the final report…"
+msgstr ""
+
 #: src/lib/billing.ts
 msgid "year"
 msgstr "年"
@@ -7787,6 +8787,10 @@ msgstr "年"
 #: src/components/ModelCredits.tsx
 msgid "Yearly"
 msgstr "年払い"
+
+#: src/components/MeetingStructuredContent.tsx
+msgid "Yes"
+msgstr ""
 
 #: src/pages/shell/chat-context.tsx
 #: src/pages/shell/sidebar-roster.tsx
@@ -7819,8 +8823,17 @@ msgid "You get a free month when they start their trial with a new card."
 msgstr "友だちが新しいカードでトライアルを始めると、あなたは1か月無料になります。"
 
 #: src/pages/shell/computer-overlay.tsx
+#: src/pages/shell/computer-workspace.tsx
 msgid "You have control"
 msgstr "あなたが操作中"
+
+#: src/pages/OnboardingCompany.tsx
+msgid "You stay the Human CEO. Nothing is approved automatically."
+msgstr ""
+
+#: src/pages/OnboardingCompany.tsx
+msgid "Your AI company is ready to create"
+msgstr ""
 
 #. js-lingui-explicit-id
 #: src/lib/run-error.ts
@@ -7858,6 +8871,10 @@ msgstr "デフォルト設定"
 #: src/pages/Auth.tsx
 msgid "Your email address"
 msgstr "メールアドレス"
+
+#: src/pages/OnboardingCompany.tsx
+msgid "Your first task"
+msgstr ""
 
 #. js-lingui-explicit-id
 #: src/lib/run-error.ts
